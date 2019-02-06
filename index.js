@@ -41,7 +41,7 @@ class EIMBlocks {
       this.data = msg.data;
       const topic = this.data.topic;
       if (topic != CONTROL_TOPIC) {
-        const message = this.data.message;
+        const message = this.data.data;
         this.message = message; // 可能被清空
         this.topic = topic;
         this.origin_message = message;
