@@ -2,7 +2,6 @@ const ArgumentType = require("../../extension-support/argument-type");
 const BlockType = require("../../extension-support/block-type");
 const formatMessage = require("format-message");
 const io = require("socket.io-client"); // yarn add socket.io-client socket.io-client@2.2.0
-
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
  * @type {string}
@@ -38,19 +37,19 @@ class EIMBlocks {
       transports: ["websocket"]
     });
     this.socket.on("sensor", msg => {
-      this.data = msg.data;
-      const topic = this.data.topic;
+      this.message = msg.message;
+      const topic = this.message.topic;
       if (topic != CONTROL_TOPIC) {
-        const message = this.data.message;
+        const message = this.message.message;
         this.message = message; // 可能被清空
         this.topic = topic;
         this.origin_message = message;
       }
 
       if (topic === CONTROL_TOPIC) {
-        const type = this.data.type;
+        const type = this.message.type;
         if (type === "event/extensions_statu") {
-          this.extensions_statu = this.data.data; //json
+          this.extensions_statu = this.message.payload; //json
         }
       }
     });
@@ -224,7 +223,7 @@ class EIMBlocks {
   // 使用广播的概念, 与scratch保持一致
   broadcastMessage(args) {
     const message = args.DATA;
-    this.socket.emit("actuator", { topic: TOPIC, data: message });
+    this.socket.emit("actuator", { topic: TOPIC, payload: message });
     return;
   }
 
@@ -249,7 +248,7 @@ class EIMBlocks {
   broadcastTopicMessage(args) {
     const topic = args.TOPIC;
     const message = args.DATA;
-    this.socket.emit("actuator", { topic: topic, data: message });
+    this.socket.emit("actuator", { topic: topic, payload: message });
     return;
   }
 
@@ -259,7 +258,7 @@ class EIMBlocks {
     const message = {
       topic: "__control",
       type: "web/extension_control",
-      data: { action: turn, extension_name: extension_name }
+      payload: { action: turn, extension_name: extension_name }
     };
     this.socket.emit("actuator", message);
     return;
@@ -281,3 +280,4 @@ class EIMBlocks {
 */
 
 module.exports = EIMBlocks;
+`:
