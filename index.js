@@ -40,7 +40,7 @@ class EIMBlocks {
       this.message = msg.message;
       const topic = this.message.topic;
       if (topic != CONTROL_TOPIC) {
-        const message = this.message.message;
+        const message = this.message.payload;
         this.message = message; // 可能被清空
         this.topic = topic;
         this.origin_message = message;
@@ -280,4 +280,3 @@ class EIMBlocks {
 */
 
 module.exports = EIMBlocks;
-`:
