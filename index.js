@@ -194,6 +194,7 @@ class EIMBlocks {
           "extension_usb_microbit",
           "extension_eim_monitor",
           "extension_cozmo",
+          "extension_wechat",
           "extension_eim",
           "extension_eim_script",
           "extension_python_kernel",
