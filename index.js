@@ -33,6 +33,7 @@ class EIMBlocks {
       var adapterHost = "codelab-adapter.codelab.club";
     }
 
+    // electron打包的应用使用 `wss://${adapterHost}:12358`
     this.socket = io(`//${adapterHost}:12358` + "/test", {
       transports: ["websocket"]
     });
