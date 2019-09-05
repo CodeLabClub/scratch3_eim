@@ -215,6 +215,26 @@ class EIMBlocks {
                     }
                 },
                 {
+                    opcode: "broadcastTopicMessageAndWait_REPORTER",
+                    blockType: BlockType.REPORTER,
+                    text: formatMessage({
+                        id: "eim.sendTopicMessageAndWait_REPORTER",
+                        default: "broadcast [extension_id] [content] and wait",
+                        description:
+                            "broadcast topic message to codelab-adapter and wait(REPORTER)"
+                    }),
+                    arguments: {
+                        extension_id: {
+                            type: ArgumentType.STRING,
+                            defaultValue: "eim/python"
+                        },
+                        content: {
+                            type: ArgumentType.STRING,
+                            defaultValue: 'print("hello")'
+                        }
+                    }
+                },
+                {
                     opcode: "control_extension",
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
@@ -255,19 +275,25 @@ class EIMBlocks {
             ],
             menus: {
                 // todo 动态
-                extensions_name: [
-                    "extension_eim",
-                    "extension_python_kernel",
-                    "extension_tello",
-                    "extension_usb_microbit",
-                    "extension_wechat",
-                    "extension_cozmo",
-                    "extension_vector",
-                    "extension_eim_monitor",
-                    "extension_eim_trigger"
-                    // "extension_raspberrypi"
-                ],
-                turn: ["start", "stop"]
+                extensions_name: {
+                    acceptReporters: true,
+                    items: [
+                        "extension_eim",
+                        "extension_python_kernel",
+                        "extension_tello",
+                        "extension_usb_microbit",
+                        "extension_wechat",
+                        "extension_cozmo",
+                        "extension_vector",
+                        "extension_eim_monitor",
+                        "extension_eim_trigger"
+                        // "extension_raspberrypi"
+                    ]
+                },
+                turn: {
+                    acceptReporters: true,
+                    items: ["start", "stop"]
+                }
             }
         };
     }
@@ -362,9 +388,17 @@ class EIMBlocks {
     broadcastTopicMessageAndWait(args) {
         // topic服务于消息功能， extension_id承载业务逻辑(extension)
         const extension_id = args.extension_id;
-        content = args.content;
+        const content = args.content;
         return this.emit_with_messageid(extension_id, content);
     }
+
+    broadcastTopicMessageAndWait_REPORTER(args) {
+        // topic服务于消息功能， extension_id承载业务逻辑(extension)
+        const extension_id = args.extension_id;
+        const content = args.content;
+        return this.emit_with_messageid(extension_id, content);
+    }
+    
 
     // wait/not wait
 
