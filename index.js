@@ -1,5 +1,6 @@
 const ArgumentType = require("../../extension-support/argument-type");
 const BlockType = require("../../extension-support/block-type");
+const RateLimiter = require('../../util/rateLimiter.js');
 const formatMessage = require("format-message");
 const io = require("socket.io-client"); // yarn add socket.io-client socket.io-client@2.2.0
 /**
@@ -38,12 +39,15 @@ class EIMBlocks {
         this._requestID = 0;
         this._promiseResolves = {};
         this.runtime = runtime;
+        const SendRateMax = 10;
+        this._rateLimiter = new RateLimiter(SendRateMax);
 
         const url = new URL(window.location.href);
         var adapterHost = url.searchParams.get("adapter_host"); // 支持树莓派(分布式使用)
         if (!adapterHost) {
             var adapterHost = "codelab-adapter.codelab.club";
         }
+        this.adapterHost = adapterHost;
 
         this.socket = io(`//${adapterHost}:12358` + "/test", {
             transports: ["websocket"]
@@ -271,6 +275,21 @@ class EIMBlocks {
                             menu: "extensions_name"
                         }
                     }
+                },
+                {
+                    opcode: "trust_adapter_host",
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: "eim.trust_adapter_host",
+                        default: "trust adapter host[adapter_host]",
+                        description: "trust adapter host"
+                    }),
+                    arguments: {
+                        adapter_host: {
+                            type: ArgumentType.STRING,
+                            defaultValue: `${this.adapterHost}` //'https://raspberrypi.local:12358'
+                        }
+                    }
                 }
             ],
             menus: {
@@ -314,6 +333,8 @@ class EIMBlocks {
     }
 
     emit_with_messageid(extension_id, content) {
+        if (!this._rateLimiter.okayToSend()) return Promise.resolve();
+
         const messageID = this._requestID++;
         const payload = {};
         payload.extension_id = extension_id;
@@ -327,6 +348,8 @@ class EIMBlocks {
     }
 
     emit_without_messageid(extension_id, content) {
+        if (!this._rateLimiter.okayToSend()) return Promise.resolve();
+
         const payload = {};
         payload.extension_id = extension_id;
         payload.content = content;
@@ -336,10 +359,15 @@ class EIMBlocks {
         });
     }
 
+    trust_adapter_host(args) {
+        const adapter_host = args.adapter_host;
+        window.open(`https://${adapter_host}:12358`);
+    }
+
     // when receive
     whenMessageReceive(args) {
         const content = args.content;
-        if (content === this.content) {
+        if (this.content && content === this.content) {
             this.content = null; // 每次清空
             return true;
         }
