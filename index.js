@@ -50,26 +50,54 @@ class EIMBlocks {
         this.adapterHost = adapterHost;
 
         this.socket = io(`//${adapterHost}:12358` + "/test", {
-            transports: ["websocket"]
+            transports: ["websocket"],
         });
 
         this.extensions_statu = {};
-        this.socket.on("sensor", msg => {
+        this.nodes_statu = {};
+
+        this.socket.on("connect", () => {
+            // 触发一次插件状态的请求,
+            this.update_extension_ui(); // parents
+            this.status = "connected!";
+            this.connected = true;
+        });
+        // connect
+
+        this.socket.on('sensor', (msg) => {
             this.content = msg.message.payload.content;
             this.topic = msg.message.topic;
             this.extension_id = msg.message.payload.extension_id;
             const message_id = msg.message.payload.message_id;
 
-            if (this.topic === EXTENSION_STATU_CHANGE_TOPIC){
-                const extension_name = msg.message.payload.extension_name;
-                this.extensions_statu[extension_name] = this.content;
-                console.log(`${extension_name} statu change to ${this.content}`);
+            if (this.topic === EXTENSION_STATU_CHANGE_TOPIC) {
+                const extension_node_name = msg.message.payload.extension_name;
+                const content = msg.message.payload.content;
+                // this.extensions_statu[extension_node_name] = this.content;
+                console.log(
+                    `${extension_node_name} statu change to ${this.content}`
+                );
+                const status_checked_map = { start: true, stop: false };
+                if (extension_node_name.startsWith("extension_")) {
+                    this.extensions_statu[extension_node_name]["is_running"] =
+                        status_checked_map[content];
+                    console.log(`extension statu change to ${content}`);
+                }
+                if (extension_node_name.startsWith("node_")) {
+                    this.nodes_statu[extension_node_name]["is_running"] =
+                        status_checked_map[content];
+                    console.log(`node statu change to ${content}`);
+                }
             }
-            if (this.topic === EXTENSIONS_STATUS_TOPIC){
-                console.log('extensions status:', this.content);
+            if (this.topic === EXTENSIONS_STATUS_TOPIC) {
+                // parents: connect to pub trigger
+                const content = msg.message.payload.content;
+                console.log("extensions status:", this.content);
+                this.extensions_statu = content["extensions_status_and_info"];
+                this.nodes_statu = content["node_status_and_info"];
             }
-            if (this.topic === NOTIFICATION_TOPIC){
-                console.log('NOTIFICATION:', this.content);
+            if (this.topic === NOTIFICATION_TOPIC) {
+                console.log("NOTIFICATION:", this.content);
             }
             if (this.topic === ADAPTER_TOPIC) {
                 window.message = msg;
@@ -83,6 +111,17 @@ class EIMBlocks {
                 }
             }
         });
+    }
+
+    update_extension_ui() {
+        // 应该是请求 reqest，其他client都接收？
+        const message = {
+            topic: EXTENSIONS_STATUS_TRIGGER_TOPIC,
+            payload: {
+                content: "EXTENSIONS_STATUS_TRIGGER_TOPIC",
+            }
+        };
+        this.socket.emit("actuator", message);
     }
 
     /**
@@ -109,14 +148,14 @@ class EIMBlocks {
                     text: formatMessage({
                         id: "eim.whenMessageReceive",
                         default: "when I receive [content]",
-                        description: "receive target message"
+                        description: "receive target message",
                     }),
                     arguments: {
                         content: {
                             type: ArgumentType.STRING,
-                            defaultValue: "hello"
-                        }
-                    }
+                            defaultValue: "hello",
+                        },
+                    },
                 },
                 {
                     opcode: "getComingMessage",
@@ -124,9 +163,9 @@ class EIMBlocks {
                     text: formatMessage({
                         id: "eim.getComingMessage",
                         default: "received message",
-                        description: "received message"
+                        description: "received message",
                     }),
-                    arguments: {}
+                    arguments: {},
                 },
                 {
                     opcode: "broadcastMessage",
@@ -134,14 +173,14 @@ class EIMBlocks {
                     text: formatMessage({
                         id: "eim.sendMessage",
                         default: "broadcast [content]",
-                        description: "broadcast message to codelab-adapter"
+                        description: "broadcast message to codelab-adapter",
                     }),
                     arguments: {
                         content: {
                             type: ArgumentType.STRING,
-                            defaultValue: "hello"
-                        }
-                    }
+                            defaultValue: "hello",
+                        },
+                    },
                 },
                 {
                     opcode: "broadcastMessageAndWait",
@@ -150,14 +189,14 @@ class EIMBlocks {
                         id: "eim.sendMessageAndWait",
                         default: "broadcast [content] and wait",
                         description:
-                            "broadcast message to codelab-adapter and wait"
+                            "broadcast message to codelab-adapter and wait",
                     }),
                     arguments: {
                         content: {
                             type: ArgumentType.STRING,
-                            defaultValue: "hello"
-                        }
-                    }
+                            defaultValue: "hello",
+                        },
+                    },
                 },
                 {
                     opcode: "whenTopicMessageReceive",
@@ -165,18 +204,18 @@ class EIMBlocks {
                     text: formatMessage({
                         id: "eim.whenTopicMessageReceive",
                         default: "when I receive [extension_id] [content]",
-                        description: "receive target topic message"
+                        description: "receive target topic message",
                     }),
                     arguments: {
                         extension_id: {
                             type: ArgumentType.STRING,
-                            defaultValue: "eim/python"
+                            defaultValue: "eim/python",
                         },
                         content: {
                             type: ArgumentType.STRING,
-                            defaultValue: "hello"
-                        }
-                    }
+                            defaultValue: "hello",
+                        },
+                    },
                 },
                 {
                     opcode: "broadcastTopicMessage",
@@ -185,18 +224,18 @@ class EIMBlocks {
                         id: "eim.sendTopicMessage",
                         default: "broadcast [extension_id] [content]",
                         description:
-                            "broadcast topic message to codelab-adapter"
+                            "broadcast topic message to codelab-adapter",
                     }),
                     arguments: {
                         extension_id: {
                             type: ArgumentType.STRING,
-                            defaultValue: "eim/python"
+                            defaultValue: "eim/python",
                         },
                         content: {
                             type: ArgumentType.STRING,
-                            defaultValue: 'print("hello")'
-                        }
-                    }
+                            defaultValue: 'print("hello")',
+                        },
+                    },
                 },
                 {
                     opcode: "broadcastTopicMessageAndWait",
@@ -205,18 +244,18 @@ class EIMBlocks {
                         id: "eim.sendTopicMessageAndWait",
                         default: "broadcast [extension_id] [content] and wait",
                         description:
-                            "broadcast topic message to codelab-adapter and wait"
+                            "broadcast topic message to codelab-adapter and wait",
                     }),
                     arguments: {
                         extension_id: {
                             type: ArgumentType.STRING,
-                            defaultValue: "eim/python"
+                            defaultValue: "eim/python",
                         },
                         content: {
                             type: ArgumentType.STRING,
-                            defaultValue: 'print("hello")'
-                        }
-                    }
+                            defaultValue: 'print("hello")',
+                        },
+                    },
                 },
                 {
                     opcode: "broadcastTopicMessageAndWait_REPORTER",
@@ -225,18 +264,18 @@ class EIMBlocks {
                         id: "eim.sendTopicMessageAndWait_REPORTER",
                         default: "broadcast [extension_id] [content] and wait",
                         description:
-                            "broadcast topic message to codelab-adapter and wait(REPORTER)"
+                            "broadcast topic message to codelab-adapter and wait(REPORTER)",
                     }),
                     arguments: {
                         extension_id: {
                             type: ArgumentType.STRING,
-                            defaultValue: "eim/python"
+                            defaultValue: "eim/python",
                         },
                         content: {
                             type: ArgumentType.STRING,
-                            defaultValue: 'print("hello")'
-                        }
-                    }
+                            defaultValue: 'print("hello")',
+                        },
+                    },
                 },
                 {
                     opcode: "control_extension",
@@ -245,20 +284,20 @@ class EIMBlocks {
                         id: "eim.control_extension",
                         default: "[turn] [extension_name]",
                         description:
-                            "turn on/off the extension of codelab-adapter"
+                            "turn on/off the extension of codelab-adapter",
                     }),
                     arguments: {
                         turn: {
                             type: ArgumentType.STRING,
                             defaultValue: "start",
-                            menu: "turn"
+                            menu: "turn",
                         },
                         extension_name: {
                             type: ArgumentType.STRING,
                             defaultValue: "extension_eim",
-                            menu: "extensions_name"
-                        }
-                    }
+                            menu: "extensions_name",
+                        },
+                    },
                 },
                 {
                     opcode: "is_extension_turned_on",
@@ -266,15 +305,53 @@ class EIMBlocks {
                     text: formatMessage({
                         id: "eim.is_extension_turned_on",
                         default: "is [extension_name] turned on?",
-                        description: "get the extension statu"
+                        description: "get the extension statu",
                     }),
                     arguments: {
                         extension_name: {
                             type: ArgumentType.STRING,
                             defaultValue: "extension_eim",
-                            menu: "extensions_name"
-                        }
-                    }
+                            menu: "extensions_name",
+                        },
+                    },
+                },
+                {
+                    opcode: "control_node",
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: "eim.control_node",
+                        default: "[turn] [node_name]",
+                        description:
+                            "turn on/off the node of codelab-adapter",
+                    }),
+                    arguments: {
+                        turn: {
+                            type: ArgumentType.STRING,
+                            defaultValue: "start",
+                            menu: "turn",
+                        },
+                        node_name: {
+                            type: ArgumentType.STRING,
+                            defaultValue: "node_eim",
+                            menu: "nodes_name",
+                        },
+                    },
+                },
+                {
+                    opcode: "is_node_turned_on",
+                    blockType: BlockType.REPORTER,
+                    text: formatMessage({
+                        id: "eim.is_node_turned_on",
+                        default: "is [node_name] turned on?",
+                        description: "get the node statu",
+                    }),
+                    arguments: {
+                        node_name: {
+                            type: ArgumentType.STRING,
+                            defaultValue: "node_eim",
+                            menu: "nodes_name",
+                        },
+                    },
                 },
                 {
                     opcode: "trust_adapter_host",
@@ -282,41 +359,61 @@ class EIMBlocks {
                     text: formatMessage({
                         id: "eim.trust_adapter_host",
                         default: "trust adapter host[adapter_host]",
-                        description: "trust adapter host"
+                        description: "trust adapter host",
                     }),
                     arguments: {
                         adapter_host: {
                             type: ArgumentType.STRING,
-                            defaultValue: `${this.adapterHost}` //'https://raspberrypi.local:12358'
-                        }
-                    }
-                }
+                            defaultValue: `${this.adapterHost}`, //'https://raspberrypi.local:12358'
+                        },
+                    },
+                },
             ],
             menus: {
                 // todo 动态
-                extensions_name: {
-                    acceptReporters: true,
-                    items: [
-                        "extension_eim",
-                        "extension_python_kernel",
-                        "extension_tello",
-                        "extension_usb_microbit",
-                        "extension_wechat",
-                        "extension_cozmo",
-                        "extension_vector",
-                        "extension_eim_monitor",
-                        "extension_eim_trigger"
-                        // "extension_raspberrypi"
-                    ]
-                },
+                extensions_name: "_formatExtension",
+                nodes_name: "_formatNode",
                 turn: {
                     acceptReporters: true,
-                    items: ["start", "stop"]
-                }
-            }
+                    items: ["start", "stop"],
+                },
+            },
         };
     }
 
+    _formatExtension() {
+        // text value list
+        if (Object.keys(this.extensions_statu).length) {
+            // window.extensions_statu = this.extensions_statu;
+            let extensions = Object.keys(this.extensions_statu).map((extension_name) => ({
+                text: extension_name,
+                value: extension_name,
+            }));
+            return extensions;
+        }
+        return [
+            {
+                text: "extension_eim",
+                value: "extension_eim",
+            },
+        ];
+    }
+    _formatNode() {
+        // text value list
+        if (Object.keys(this.nodes_statu).length) {
+            let nodes = Object.keys(this.nodes_statu).map((node_name) => ({
+                text: node_name,
+                value: node_name,
+            }));
+            return nodes;
+        }
+        return [
+            {
+                text: "node_eim",
+                value: "node_eim",
+            },
+        ];
+    }
     /**
      * Retrieve the block primitives implemented by this package.
      * @return {object.<string, Function>} Mapping of opcode to Function.
@@ -342,7 +439,7 @@ class EIMBlocks {
         payload.message_id = messageID;
         this.socket.emit("actuator", {
             payload: payload,
-            topic: SCRATCH_TOPIC
+            topic: SCRATCH_TOPIC,
         });
         return this.get_reply_message(messageID);
     }
@@ -355,7 +452,7 @@ class EIMBlocks {
         payload.content = content;
         this.socket.emit("actuator", {
             payload: payload,
-            topic: SCRATCH_TOPIC
+            topic: SCRATCH_TOPIC,
         });
     }
 
@@ -426,7 +523,6 @@ class EIMBlocks {
         const content = args.content;
         return this.emit_with_messageid(extension_id, content);
     }
-    
 
     // wait/not wait
 
@@ -435,7 +531,11 @@ class EIMBlocks {
         const extension_name = args.extension_name;
         const message = {
             topic: EXTENSIONS_OPERATE_TOPIC,
-            payload: { content: turn, extension_id:EXTENSION_ID, extension_name: extension_name }
+            payload: {
+                content: turn,
+                extension_id: EXTENSION_ID,
+                extension_name: extension_name,
+            },
         };
         this.socket.emit("actuator", message);
         return;
@@ -443,14 +543,39 @@ class EIMBlocks {
     // todo 主动查询后端 使用rpc风格，有id的消息 和没有id的消息
     is_extension_turned_on(args) {
         const extension_name = args.extension_name;
-        const statu = this.extensions_statu[extension_name];
+        const statu = this.extensions_statu[extension_name]['is_running']
         if (statu) {
-            const statu = this.extensions_statu[extension_name];
             return statu;
         } else {
             return false;
         }
     }
+
+    control_node(args) {
+        const turn = args.turn;
+        const node_name = args.node_name;
+        const message = {
+            topic: EXTENSIONS_OPERATE_TOPIC,
+            payload: {
+                content: turn,
+                extension_id: EXTENSION_ID,
+                extension_name: node_name, //公用通道，key
+            },
+        };
+        this.socket.emit("actuator", message);
+        return;
+    }
+    // todo 主动查询后端 使用rpc风格，有id的消息 和没有id的消息
+    is_node_turned_on(args) {
+        const node_name = args.node_name;
+        const statu = this.nodes_statu[node_name]['is_running']
+        if (statu) {
+            return statu;
+        } else {
+            return false;
+        }
+    }
+
 }
 
 /*
