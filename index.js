@@ -24,12 +24,11 @@ const EXTENSION_ID = "eim";
 
 /*
 todo:
-  1. websocket中断提醒
-  2. 动态的block功能
+  1. websocket中断提醒（全局）
 */
 
 // EIM: Everything Is Message
-// todo 构建一个基础类
+// todo 构建一个基础类（全局）
 class EIMBlocks {
     constructor(runtime) {
         /**
@@ -58,13 +57,14 @@ class EIMBlocks {
 
         this.socket.on("connect", () => {
             // 触发一次插件状态的请求,
-            this.update_extension_ui(); // parents
+            this.update_extension_ui(); // parents message
             this.status = "connected!";
             this.connected = true;
         });
         // connect
 
         this.socket.on('sensor', (msg) => {
+            // all message
             this.content = msg.message.payload.content;
             this.topic = msg.message.topic;
             this.extension_id = msg.message.payload.extension_id;
@@ -114,7 +114,6 @@ class EIMBlocks {
     }
 
     update_extension_ui() {
-        // 应该是请求 reqest，其他client都接收？
         const message = {
             topic: EXTENSIONS_STATUS_TRIGGER_TOPIC,
             payload: {
@@ -167,21 +166,7 @@ class EIMBlocks {
                     }),
                     arguments: {},
                 },
-                {
-                    opcode: "broadcastMessage",
-                    blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: "eim.sendMessage",
-                        default: "broadcast [content]",
-                        description: "broadcast message to codelab-adapter",
-                    }),
-                    arguments: {
-                        content: {
-                            type: ArgumentType.STRING,
-                            defaultValue: "hello",
-                        },
-                    },
-                },
+                // 优先推荐wait模式（同步）
                 {
                     opcode: "broadcastMessageAndWait",
                     blockType: BlockType.COMMAND,
@@ -199,81 +184,17 @@ class EIMBlocks {
                     },
                 },
                 {
-                    opcode: "whenTopicMessageReceive",
-                    blockType: BlockType.HAT,
+                    opcode: "broadcastMessage",
+                    blockType: BlockType.COMMAND,
                     text: formatMessage({
-                        id: "eim.whenTopicMessageReceive",
-                        default: "when I receive [extension_id] [content]",
-                        description: "receive target topic message",
+                        id: "eim.sendMessage",
+                        default: "broadcast [content]",
+                        description: "broadcast message to codelab-adapter",
                     }),
                     arguments: {
-                        extension_id: {
-                            type: ArgumentType.STRING,
-                            defaultValue: "eim/python",
-                        },
                         content: {
                             type: ArgumentType.STRING,
                             defaultValue: "hello",
-                        },
-                    },
-                },
-                {
-                    opcode: "broadcastTopicMessage",
-                    blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: "eim.sendTopicMessage",
-                        default: "broadcast [extension_id] [content]",
-                        description:
-                            "broadcast topic message to codelab-adapter",
-                    }),
-                    arguments: {
-                        extension_id: {
-                            type: ArgumentType.STRING,
-                            defaultValue: "eim/python",
-                        },
-                        content: {
-                            type: ArgumentType.STRING,
-                            defaultValue: 'print("hello")',
-                        },
-                    },
-                },
-                {
-                    opcode: "broadcastTopicMessageAndWait",
-                    blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: "eim.sendTopicMessageAndWait",
-                        default: "broadcast [extension_id] [content] and wait",
-                        description:
-                            "broadcast topic message to codelab-adapter and wait",
-                    }),
-                    arguments: {
-                        extension_id: {
-                            type: ArgumentType.STRING,
-                            defaultValue: "eim/python",
-                        },
-                        content: {
-                            type: ArgumentType.STRING,
-                            defaultValue: 'print("hello")',
-                        },
-                    },
-                },
-                {
-                    opcode: "broadcastTopicMessageAndWait_REPORTER",
-                    blockType: BlockType.REPORTER,
-                    text: formatMessage({
-                        id: "eim.sendTopicMessageAndWait_REPORTER",
-                        default: "broadcast [extension_id] [content] and wait",
-                        description:
-                            "broadcast topic message to codelab-adapter and wait(REPORTER)",
-                    }),
-                    arguments: {
-                        extension_id: {
-                            type: ArgumentType.STRING,
-                            defaultValue: "eim/python",
-                        },
-                        content: {
-                            type: ArgumentType.STRING,
-                            defaultValue: 'print("hello")',
                         },
                     },
                 },
@@ -350,6 +271,85 @@ class EIMBlocks {
                             type: ArgumentType.STRING,
                             defaultValue: "node_eim",
                             menu: "nodes_name",
+                        },
+                    },
+                },
+                {
+                    opcode: "whenTopicMessageReceive",
+                    blockType: BlockType.HAT,
+                    text: formatMessage({
+                        id: "eim.whenTopicMessageReceive",
+                        default: "when I receive [extension_id] [content]",
+                        description: "receive target topic message",
+                    }),
+                    arguments: {
+                        extension_id: {
+                            type: ArgumentType.STRING,
+                            defaultValue: "eim/python",
+                        },
+                        content: {
+                            type: ArgumentType.STRING,
+                            defaultValue: "hello",
+                        },
+                    },
+                },
+                {
+                    opcode: "broadcastTopicMessageAndWait",
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: "eim.sendTopicMessageAndWait",
+                        default: "broadcast [extension_id] [content] and wait",
+                        description:
+                            "broadcast topic message to codelab-adapter and wait",
+                    }),
+                    arguments: {
+                        extension_id: {
+                            type: ArgumentType.STRING,
+                            defaultValue: "eim/python",
+                        },
+                        content: {
+                            type: ArgumentType.STRING,
+                            defaultValue: 'print("hello")',
+                        },
+                    },
+                },
+                {
+                    opcode: "broadcastTopicMessage",
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: "eim.sendTopicMessage",
+                        default: "broadcast [extension_id] [content]",
+                        description:
+                            "broadcast topic message to codelab-adapter",
+                    }),
+                    arguments: {
+                        extension_id: {
+                            type: ArgumentType.STRING,
+                            defaultValue: "eim/python",
+                        },
+                        content: {
+                            type: ArgumentType.STRING,
+                            defaultValue: 'print("hello")',
+                        },
+                    },
+                },
+                {
+                    opcode: "broadcastTopicMessageAndWait_REPORTER",
+                    blockType: BlockType.REPORTER,
+                    text: formatMessage({
+                        id: "eim.sendTopicMessageAndWait_REPORTER",
+                        default: "broadcast [extension_id] [content] and wait",
+                        description:
+                            "broadcast topic message to codelab-adapter and wait(REPORTER)",
+                    }),
+                    arguments: {
+                        extension_id: {
+                            type: ArgumentType.STRING,
+                            defaultValue: "eim/python",
+                        },
+                        content: {
+                            type: ArgumentType.STRING,
+                            defaultValue: 'print("hello")',
                         },
                     },
                 },
@@ -444,6 +444,22 @@ class EIMBlocks {
         return this.get_reply_message(messageID);
     }
 
+    emit_with_messageid_for_control(extension_id, content, extension_name) {
+        if (!this._rateLimiter.okayToSend()) return Promise.resolve();
+
+        const messageID = this._requestID++;
+        const payload = {};
+        payload.extension_id = extension_id;
+        payload.content = content;
+        payload.message_id = messageID;
+        payload.extension_name=extension_name;
+        this.socket.emit("actuator", {
+            payload: payload,
+            topic: EXTENSIONS_OPERATE_TOPIC,
+        });
+        return this.get_reply_message(messageID);
+    }
+
     emit_without_messageid(extension_id, content) {
         if (!this._rateLimiter.okayToSend()) return Promise.resolve();
 
@@ -527,19 +543,11 @@ class EIMBlocks {
     // wait/not wait
 
     control_extension(args) {
-        const turn = args.turn;
+        const content = args.turn;
         const extension_name = args.extension_name;
-        const message = {
-            topic: EXTENSIONS_OPERATE_TOPIC,
-            payload: {
-                content: turn,
-                extension_id: EXTENSION_ID,
-                extension_name: extension_name,
-            },
-        };
-        this.socket.emit("actuator", message);
-        return;
+        return this.emit_with_messageid_for_control(EXTENSION_ID, content,extension_name);
     }
+
     // todo 主动查询后端 使用rpc风格，有id的消息 和没有id的消息
     is_extension_turned_on(args) {
         const extension_name = args.extension_name;
@@ -552,18 +560,9 @@ class EIMBlocks {
     }
 
     control_node(args) {
-        const turn = args.turn;
+        const content = args.turn;
         const node_name = args.node_name;
-        const message = {
-            topic: EXTENSIONS_OPERATE_TOPIC,
-            payload: {
-                content: turn,
-                extension_id: EXTENSION_ID,
-                extension_name: node_name, //公用通道，key
-            },
-        };
-        this.socket.emit("actuator", message);
-        return;
+        return this.emit_with_messageid_for_control(EXTENSION_ID, content, node_name);
     }
     // todo 主动查询后端 使用rpc风格，有id的消息 和没有id的消息
     is_node_turned_on(args) {
