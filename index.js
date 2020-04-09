@@ -167,7 +167,7 @@ class EIMBlocks {
                     arguments: {
                         content: {
                             type: ArgumentType.STRING,
-                            defaultValue: "3",
+                            defaultValue: "hello",
                         },
                     },
                 },
@@ -194,7 +194,7 @@ class EIMBlocks {
                     arguments: {
                         content: {
                             type: ArgumentType.STRING,
-                            defaultValue: "1+2",
+                            defaultValue: "hello",
                         },
                     },
                 },
@@ -209,7 +209,7 @@ class EIMBlocks {
                     arguments: {
                         content: {
                             type: ArgumentType.STRING,
-                            defaultValue: "1+2",
+                            defaultValue: "hello",
                         },
                     },
                 },
