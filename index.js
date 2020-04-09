@@ -21,6 +21,8 @@ const EXTENSION_STATU_CHANGE_TOPIC = "core/extension/statu/change"
 const NOTIFICATION_TOPIC = "core/notification";
 
 const EXTENSION_ID = "eim";
+const HELP_URL = "https://adapter.codelab.club/scratch_extensions/introduction/";
+
 
 /*
 todo:
@@ -141,6 +143,18 @@ class EIMBlocks {
             menuIconURI: menuIconURI,
             blockIconURI: blockIconURI,
             blocks: [
+                {
+                    opcode: "open_help_url",
+                    blockType: BlockType.COMMAND,
+                    text: formatMessage({
+                        id: "eim.open_help_url",
+                        default: "help",
+                        description:
+                            "open help url",
+                    }),
+                    arguments: {
+                    },
+                },
                 {
                     opcode: "whenMessageReceive",
                     blockType: BlockType.HAT,
@@ -475,6 +489,10 @@ class EIMBlocks {
     trust_adapter_host(args) {
         const adapter_host = args.adapter_host;
         window.open(`https://${adapter_host}:12358`);
+    }
+
+    open_help_url(args){
+        window.open(HELP_URL);
     }
 
     // when receive
