@@ -15,14 +15,15 @@ const menuIconURI = blockIconURI;
 const ADAPTER_TOPIC = "adapter/extensions/data";
 const SCRATCH_TOPIC = "scratch/extensions/command";
 const EXTENSIONS_OPERATE_TOPIC = "core/extensions/operate";
+const NODES_OPERATE_TOPIC = "core/nodes/operate";
 const EXTENSIONS_STATUS_TOPIC = "core/extensions/status";
 const EXTENSIONS_STATUS_TRIGGER_TOPIC = "core/extensions/status/trigger"
 const EXTENSION_STATU_CHANGE_TOPIC = "core/extension/statu/change"
 const NOTIFICATION_TOPIC = "core/notification";
 
 const EXTENSION_ID = "eim";
-const HELP_URL = "https://adapter.codelab.club/scratch_extensions/introduction/";
-
+const HELP_URL = "https://adapter.codelab.club/extension_guide/eim/";
+const plugin_topic_map = {"node":NODES_OPERATE_TOPIC, "extension":EXTENSIONS_OPERATE_TOPIC}
 
 /*
 todo:
@@ -166,7 +167,7 @@ class EIMBlocks {
                     arguments: {
                         content: {
                             type: ArgumentType.STRING,
-                            defaultValue: "hello",
+                            defaultValue: "3",
                         },
                     },
                 },
@@ -193,7 +194,7 @@ class EIMBlocks {
                     arguments: {
                         content: {
                             type: ArgumentType.STRING,
-                            defaultValue: "hello",
+                            defaultValue: "1+2",
                         },
                     },
                 },
@@ -208,7 +209,7 @@ class EIMBlocks {
                     arguments: {
                         content: {
                             type: ArgumentType.STRING,
-                            defaultValue: "hello",
+                            defaultValue: "1+2",
                         },
                     },
                 },
@@ -303,7 +304,7 @@ class EIMBlocks {
                         },
                         content: {
                             type: ArgumentType.STRING,
-                            defaultValue: "hello",
+                            defaultValue: "3",
                         },
                     },
                 },
@@ -323,7 +324,7 @@ class EIMBlocks {
                         },
                         content: {
                             type: ArgumentType.STRING,
-                            defaultValue: 'print("hello")',
+                            defaultValue: '1+2',
                         },
                     },
                 },
@@ -343,7 +344,7 @@ class EIMBlocks {
                         },
                         content: {
                             type: ArgumentType.STRING,
-                            defaultValue: 'print("hello")',
+                            defaultValue: '1+2',
                         },
                     },
                 },
@@ -363,7 +364,7 @@ class EIMBlocks {
                         },
                         content: {
                             type: ArgumentType.STRING,
-                            defaultValue: 'print("hello")',
+                            defaultValue: '1+2',
                         },
                     },
                 },
@@ -458,7 +459,7 @@ class EIMBlocks {
         return this.get_reply_message(messageID);
     }
 
-    emit_with_messageid_for_control(extension_id, content, extension_name) {
+    emit_with_messageid_for_control(extension_id, content, extension_name, pluginType) {
         if (!this._rateLimiter.okayToSend()) return Promise.resolve();
 
         const messageID = this._requestID++;
@@ -469,7 +470,7 @@ class EIMBlocks {
         payload.extension_name=extension_name;
         this.socket.emit("actuator", {
             payload: payload,
-            topic: EXTENSIONS_OPERATE_TOPIC,
+            topic: plugin_topic_map[pluginType],
         });
         return this.get_reply_message(messageID);
     }
@@ -563,7 +564,7 @@ class EIMBlocks {
     control_extension(args) {
         const content = args.turn;
         const extension_name = args.extension_name;
-        return this.emit_with_messageid_for_control(EXTENSION_ID, content,extension_name);
+        return this.emit_with_messageid_for_control(EXTENSION_ID, content,extension_name, "extension");
     }
 
     // todo 主动查询后端 使用rpc风格，有id的消息 和没有id的消息
@@ -580,7 +581,7 @@ class EIMBlocks {
     control_node(args) {
         const content = args.turn;
         const node_name = args.node_name;
-        return this.emit_with_messageid_for_control(EXTENSION_ID, content, node_name);
+        return this.emit_with_messageid_for_control(EXTENSION_ID, content, node_name, "node");
     }
     // todo 主动查询后端 使用rpc风格，有id的消息 和没有id的消息
     is_node_turned_on(args) {
