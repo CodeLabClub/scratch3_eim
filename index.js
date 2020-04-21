@@ -84,19 +84,21 @@ class AdapterEIMClient {
                 case NODE_STATU_CHANGE_TOPIC: {
                     const extension_node_name = msg.message.payload.node_name;
                     const content = msg.message.payload.content;
-                    console.log(
-                        `${this.NODE_ID} statu change to ${content}`
-                    );
+                    console.log(`${this.NODE_ID} statu change to ${content}`);
                     const status_checked_map = { start: true, stop: false };
                     if (extension_node_name.startsWith("extension_")) {
                         this.exts_statu[extension_node_name]["is_running"] =
                             status_checked_map[content];
-                        console.log(`${this.NODE_ID} extension statu change to ${content}`);
+                        console.log(
+                            `${this.NODE_ID} extension statu change to ${content}`
+                        );
                     }
                     if (extension_node_name.startsWith("node_")) {
                         this.nodes_statu[extension_node_name]["is_running"] =
                             status_checked_map[content];
-                        console.log(`${this.NODE_ID} node statu change to ${content}`);
+                        console.log(
+                            `${this.NODE_ID} node statu change to ${content}`
+                        );
                     }
                     break;
                 }
@@ -112,13 +114,20 @@ class AdapterEIMClient {
                     break;
                 }
                 case NOTIFICATION_TOPIC: {
-                    console.log(`${this.NODE_ID} NOTIFICATION:`, msg.message.payload.content);
+                    console.log(
+                        `${this.NODE_ID} NOTIFICATION:`,
+                        msg.message.payload.content
+                    );
                     break;
                 }
                 case ADAPTER_TOPIC: {
                     // 特殊处理
                     window.message = msg;
-                    this.adapter_node_content = msg.message.payload.content;
+                    this.adapter_node_content_hat = msg.message.payload.content;
+
+                    // reporter 不清楚，最近一次
+                    this.adapter_node_content_reporter =
+                        msg.message.payload.content;
                     console.log(
                         `${this.NODE_ID} ADAPTER_TOPIC message->`,
                         msg.message.payload.content
@@ -199,12 +208,29 @@ class AdapterEIMClient {
         });
     }
 
-    whenMessageReceive(content) {
+    isTargetMessage(content) {
+        // 是逻辑判断
         if (
-            this.adapter_node_content &&
-            content === this.adapter_node_content
+            this.adapter_node_content_hat &&
+            content === this.adapter_node_content_hat
         ) {
-            this.adapter_node_content = null; // 每次清空
+            // 1/100秒后清除
+            setTimeout(() => {
+                this.adapter_node_content_hat = null; // 每次清空
+            }, 10); //ms
+            return true;
+        }
+    }
+
+    isTargetTopicMessage(targerNodeId, targetContent) {
+        if (
+            targetContent === this.adapter_node_content_hat &&
+            targerNodeId === this.node_id
+        ) {
+            setTimeout(() => {
+                this.adapter_node_content_hat = null; // 每次清空
+                this.node_id = null;
+            }, 10); //ms
             return true;
         }
     }
@@ -242,17 +268,6 @@ class AdapterEIMClient {
                 value: "node_eim",
             },
         ];
-    }
-
-    whenTopicMessageReceive(targerNodeId, targetContent) {
-        if (
-            targetContent === this.adapter_node_content &&
-            targerNodeId === this.node_id
-        ) {
-            this.adapter_node_content = null; // 每次清空
-            this.node_id = null;
-            return true;
-        }
     }
 }
 
@@ -555,18 +570,18 @@ class EIMBlocks {
     // when receive
     whenMessageReceive(args) {
         const content = args.content;
-        return this.adapter_client.whenMessageReceive(content);
+        return this.adapter_client.isTargetMessage(content);
     }
 
     getComingMessage() {
-        return this.adapter_client.adapter_node_content;
+        return this.adapter_client.adapter_node_content_reporter_reporter;
     }
 
     // when receive
     whenTopicMessageReceive(args) {
         const targetNodeId = args.node_id;
         const targetContent = args.content;
-        return this.adapter_client.whenTopicMessageReceive(
+        return this.adapter_client.isTargetTopicMessage(
             targetNodeId,
             targetContent
         );
