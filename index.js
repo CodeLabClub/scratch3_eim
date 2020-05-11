@@ -52,9 +52,12 @@ class AdapterEIMClient {
                 : "codelab-adapter.codelab.club";
         }
         // console.log(`${this.NODE_ID} ready to connect adapter...`)
+        // todo adapter token
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get("token");
         this.socket = io(
             `${window.__static ? "https:" : ""}//${adapterHost}:12358` +
-                "/test",
+                `/test?token=${token}`,
             {
                 transports: ["websocket"],
             }
@@ -212,12 +215,12 @@ class AdapterEIMClient {
         // 是逻辑判断
         if (
             this.adapter_node_content_hat &&
-            content === this.adapter_node_content_hat
+            (content === this.adapter_node_content_hat || content==="_any")
         ) {
             // 1/100秒后清除
             setTimeout(() => {
                 this.adapter_node_content_hat = null; // 每次清空
-            }, 10); //ms
+            }, 1); //ms， 1/1000s ，只有一个通道 可能会覆盖消息。
             return true;
         }
     }
@@ -230,7 +233,7 @@ class AdapterEIMClient {
             setTimeout(() => {
                 this.adapter_node_content_hat = null; // 每次清空
                 this.node_id = null;
-            }, 10); //ms
+            }, 1); //ms
             return true;
         }
     }
@@ -321,6 +324,17 @@ class EIMBlocks {
                             type: ArgumentType.STRING,
                             defaultValue: "hello",
                         },
+                    },
+                },
+                {
+                    opcode: "whenAnyMessageReceive",
+                    blockType: BlockType.HAT,
+                    text: formatMessage({
+                        id: "eim.whenAnyMessageReceive",
+                        default: "when I receive any message",
+                        description: "receive any message",
+                    }),
+                    arguments: {
                     },
                 },
                 {
@@ -573,8 +587,12 @@ class EIMBlocks {
         return this.adapter_client.isTargetMessage(content);
     }
 
+    whenAnyMessageReceive(args){
+        return this.adapter_client.isTargetMessage("_any");
+    }
+
     getComingMessage() {
-        return this.adapter_client.adapter_node_content_reporter_reporter;
+        return this.adapter_client.adapter_node_content_reporter;
     }
 
     // when receive
