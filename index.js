@@ -2,7 +2,8 @@ const ArgumentType = require("../../extension-support/argument-type");
 const BlockType = require("../../extension-support/block-type");
 const RateLimiter = require("../../util/rateLimiter.js");
 const formatMessage = require("format-message");
-const io = require("socket.io-client"); // yarn add socket.io-client socket.io-client@2.2.0
+// const io = require("socket.io-client"); // yarn add socket.io-client socket.io-client@2.2.0
+const AdapterBaseClient = require("./codelab_adapter_base.js");
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
  * @type {string}
@@ -16,27 +17,38 @@ const NODE_ID = "eim";
 const HELP_URL = "https://adapter.codelab.club/extension_guide/eim/";
 
 // EIM: Everything Is Message
+// EIM 与 webui client 的区别: EIM 不关心关于环境的信息
 
-class AdapterEIMClient {
+class EIMClient {
+    update_nodes_status(nodes_status) {
+        this.exts_statu = nodes_status["exts_status_and_info"];
+        this.nodes_statu = nodes_status["node_status_and_info"];
+        console.log("this.exts_statu ->", this.exts_statu);
+    }
+
+    node_statu_change_callback(extension_node_name, content) {
+        const status_checked_map = { start: true, stop: false };
+        if (extension_node_name.startsWith("extension_")) {
+            this.exts_statu[extension_node_name]["is_running"] =
+                status_checked_map[content];
+            console.log(`extension statu change to ${content}`);
+        }
+        if (extension_node_name.startsWith("node_")) {
+            this.nodes_statu[extension_node_name]["is_running"] =
+                status_checked_map[content];
+            console.log(`node statu change to ${content}`);
+        }
+    }
+
+    onAdapterPluginMessage(msg) {
+        this.adapter_node_content_hat = msg.message.payload.content; // todo topic
+        this.adapter_node_content_reporter = msg.message.payload.content;
+        this.node_id = msg.message.payload.node_id;
+    }
+
     constructor(node_id, help_url) {
-        const ADAPTER_TOPIC = "adapter/nodes/data";
-        const EXTS_OPERATE_TOPIC = "core/exts/operate";
-        const NODES_OPERATE_TOPIC = "core/nodes/operate";
-        const NODES_STATUS_TOPIC = "core/nodes/status";
-        const NODE_STATU_CHANGE_TOPIC = "core/node/statu/change";
-        const NOTIFICATION_TOPIC = "core/notification";
-
-        this.NODES_STATUS_TRIGGER_TOPIC = "core/nodes/status/trigger";
-        this.SCRATCH_TOPIC = "scratch/extensions/command";
         this.NODE_ID = node_id;
         this.HELP_URL = help_url;
-        this.plugin_topic_map = {
-            node: NODES_OPERATE_TOPIC,
-            extension: EXTS_OPERATE_TOPIC,
-        };
-
-        this._requestID = 0;
-        this._promiseResolves = {};
         const SendRateMax = 10;
         this._rateLimiter = new RateLimiter(SendRateMax);
 
@@ -44,178 +56,45 @@ class AdapterEIMClient {
         this.exts_statu = {};
         this.nodes_statu = {};
 
-        const url = new URL(window.location.href);
-        var adapterHost = url.searchParams.get("adapter_host"); // 支持树莓派(分布式使用)
-        if (!adapterHost) {
-            var adapterHost = window.__static
-                ? "127.0.0.1"
-                : "codelab-adapter.codelab.club";
-        }
-        // console.log(`${this.NODE_ID} ready to connect adapter...`)
-        // todo adapter token
-        const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get("token");
-        this.socket = io(
-            `${window.__static ? "https:" : ""}//${adapterHost}:12358` +
-                `/test?token=${token}`,
-            {
-                transports: ["websocket"],
-            }
+        this.adapter_base_client = new AdapterBaseClient(
+            null, // onConnect,
+            null, // onDisconnect,
+            null, // onMessage,
+            this.onAdapterPluginMessage.bind(this), // onAdapterPluginMessage,
+            this.update_nodes_status.bind(this), // update_nodes_status,
+            this.node_statu_change_callback.bind(this), // node_statu_change_callback,
+            null, // notify_callback,
+            null, // error_message_callback,
+            null // update_adapter_status
         );
-
-        // connect
-        this.socket.on("connect", () => {
-            // 触发一次插件状态的请求,
-            this.update_extension_ui(); // parents message
-            this.status = "connected!";
-            this.connected = true;
-        });
-
-        // message
-        this.socket.on("sensor", (msg) => {
-            // all message
-            console.log(
-                `${this.NODE_ID} sensor message(all message)->`,
-                msg.message.payload.content
-            );
-            // console.log(`sensor channel get message:`, msg);
-            this.topic = msg.message.topic;
-            this.node_id = msg.message.payload.node_id;
-            const message_id = msg.message.payload.message_id;
-            // if else if
-            switch (this.topic) {
-                case NODE_STATU_CHANGE_TOPIC: {
-                    const extension_node_name = msg.message.payload.node_name;
-                    const content = msg.message.payload.content;
-                    console.log(`${this.NODE_ID} statu change to ${content}`);
-                    const status_checked_map = { start: true, stop: false };
-                    if (extension_node_name.startsWith("extension_")) {
-                        this.exts_statu[extension_node_name]["is_running"] =
-                            status_checked_map[content];
-                        console.log(
-                            `${this.NODE_ID} extension statu change to ${content}`
-                        );
-                    }
-                    if (extension_node_name.startsWith("node_")) {
-                        this.nodes_statu[extension_node_name]["is_running"] =
-                            status_checked_map[content];
-                        console.log(
-                            `${this.NODE_ID} node statu change to ${content}`
-                        );
-                    }
-                    break;
-                }
-                case NODES_STATUS_TOPIC: {
-                    // parents: connect to pub trigger
-                    const content = msg.message.payload.content;
-                    console.log(
-                        `${this.NODE_ID} extensions status:`,
-                        msg.message.payload.content
-                    );
-                    this.exts_statu = content["exts_status_and_info"];
-                    this.nodes_statu = content["node_status_and_info"];
-                    break;
-                }
-                case NOTIFICATION_TOPIC: {
-                    console.log(
-                        `${this.NODE_ID} NOTIFICATION:`,
-                        msg.message.payload.content
-                    );
-                    break;
-                }
-                case ADAPTER_TOPIC: {
-                    // 特殊处理
-                    window.message = msg;
-                    this.adapter_node_content_hat = msg.message.payload.content;
-
-                    // reporter 不清楚，最近一次
-                    this.adapter_node_content_reporter =
-                        msg.message.payload.content;
-                    console.log(
-                        `${this.NODE_ID} ADAPTER_TOPIC message->`,
-                        msg.message.payload.content
-                    );
-                    // 处理对应id的resolve
-                    if (typeof message_id !== "undefined") {
-                        this._promiseResolves[message_id] &&
-                            this._promiseResolves[message_id](
-                                msg.message.payload.content
-                            );
-                    }
-                    break;
-                }
-            }
-        });
-    }
-
-    update_extension_ui() {
-        const message = {
-            topic: this.NODES_STATUS_TRIGGER_TOPIC,
-            payload: {
-                content: "UPDATE_UI",
-            },
-        };
-        this.socket.emit("actuator", message);
-    }
-
-    get_reply_message(messageID) {
-        const timeout = 5000; // ms todo 交给用户选择
-        return new Promise((resolve, reject) => {
-            this._promiseResolves[messageID] = resolve; // 抛到外部
-            setTimeout(() => {
-                reject(`timeout(${timeout}ms)`);
-            }, timeout);
-        });
     }
 
     emit_with_messageid(node_id, content) {
+        // 包装adapter client emit， 添加 rateLimiter
         if (!this._rateLimiter.okayToSend()) return Promise.resolve();
-
-        const messageID = this._requestID++;
-        const payload = {};
-        payload.node_id = node_id;
-        payload.content = content;
-        payload.message_id = messageID;
-        this.socket.emit("actuator", {
-            payload: payload,
-            topic: this.SCRATCH_TOPIC,
-        });
-        return this.get_reply_message(messageID);
+        return this.adapter_base_client.emit_with_messageid(node_id, content);
     }
 
     emit_with_messageid_for_control(node_id, content, node_name, pluginType) {
         if (!this._rateLimiter.okayToSend()) return Promise.resolve();
-
-        const messageID = this._requestID++;
-        const payload = {};
-        payload.node_id = node_id;
-        payload.content = content;
-        payload.message_id = messageID;
-        payload.node_name = node_name;
-        this.socket.emit("actuator", {
-            payload: payload,
-            topic: this.plugin_topic_map[pluginType],
-        });
-        return this.get_reply_message(messageID);
+        return this.adapter_base_client.emit_with_messageid_for_control(
+            node_id,
+            content,
+            node_name,
+            pluginType
+        );
     }
 
     emit_without_messageid(node_id, content) {
         if (!this._rateLimiter.okayToSend()) return Promise.resolve();
-
-        const payload = {};
-        payload.node_id = node_id;
-        payload.content = content;
-        this.socket.emit("actuator", {
-            payload: payload,
-            topic: this.SCRATCH_TOPIC,
-        });
+        this.adapter_base_client.emit_without_messageid(node_id, content);
     }
 
     isTargetMessage(content) {
         // 是逻辑判断
         if (
             this.adapter_node_content_hat &&
-            (content === this.adapter_node_content_hat || content==="_any")
+            (content === this.adapter_node_content_hat || content === "_any")
         ) {
             // 1/100秒后清除
             setTimeout(() => {
@@ -240,6 +119,7 @@ class AdapterEIMClient {
 
     formatExtension() {
         // text value list
+        console.debug("formatExtension exts_statu -> ", this.exts_statu)
         if (this.exts_statu && Object.keys(this.exts_statu).length) {
             // window.extensions_statu = this.exts_statu;
             let extensions = Object.keys(this.exts_statu).map((ext_name) => ({
@@ -280,7 +160,7 @@ class EIMBlocks {
          * The runtime instantiating this block package.
          * @type {Runtime}
          */
-        this.adapter_client = new AdapterEIMClient(NODE_ID, HELP_URL);
+        this.eim_client = new EIMClient(NODE_ID, HELP_URL);
     }
 
     /**
@@ -334,8 +214,7 @@ class EIMBlocks {
                         default: "when I receive any message",
                         description: "receive any message",
                     }),
-                    arguments: {
-                    },
+                    arguments: {},
                 },
                 {
                     opcode: "getComingMessage",
@@ -562,10 +441,10 @@ class EIMBlocks {
     }
 
     _formatExtension() {
-        return this.adapter_client.formatExtension();
+        return this.eim_client.formatExtension();
     }
     _formatNode() {
-        return this.adapter_client.formatNode();
+        return this.eim_client.formatNode();
     }
     /**
      * Retrieve the block primitives implemented by this package.
@@ -578,28 +457,28 @@ class EIMBlocks {
     }
 
     open_help_url(args) {
-        window.open(this.adapter_client.HELP_URL);
+        window.open(this.eim_client.HELP_URL);
     }
 
     // when receive
     whenMessageReceive(args) {
         const content = args.content;
-        return this.adapter_client.isTargetMessage(content);
+        return this.eim_client.isTargetMessage(content);
     }
 
-    whenAnyMessageReceive(args){
-        return this.adapter_client.isTargetMessage("_any");
+    whenAnyMessageReceive(args) {
+        return this.eim_client.isTargetMessage("_any");
     }
 
     getComingMessage() {
-        return this.adapter_client.adapter_node_content_reporter;
+        return this.eim_client.adapter_node_content_reporter;
     }
 
     // when receive
     whenTopicMessageReceive(args) {
         const targetNodeId = args.node_id;
         const targetContent = args.content;
-        return this.adapter_client.isTargetTopicMessage(
+        return this.eim_client.isTargetTopicMessage(
             targetNodeId,
             targetContent
         );
@@ -609,13 +488,13 @@ class EIMBlocks {
     // 使用广播的概念, 与scratch保持一致
     broadcastMessage(args) {
         const content = args.content;
-        this.adapter_client.emit_without_messageid(NODE_ID, content);
+        this.eim_client.emit_without_messageid(NODE_ID, content);
         return;
     }
 
     broadcastMessageAndWait(args) {
         const content = args.content;
-        return this.adapter_client.emit_with_messageid(NODE_ID, content);
+        return this.eim_client.emit_with_messageid(NODE_ID, content);
     }
 
     // broadcast message
@@ -623,7 +502,7 @@ class EIMBlocks {
     broadcastTopicMessage(args) {
         const node_id = args.node_id;
         const content = args.content;
-        this.adapter_client.emit_without_messageid(node_id, content);
+        this.eim_client.emit_without_messageid(node_id, content);
         return;
     }
 
@@ -631,14 +510,14 @@ class EIMBlocks {
         // topic服务于消息功能， node_id承载业务逻辑(extension)
         const node_id = args.node_id;
         const content = args.content;
-        return this.adapter_client.emit_with_messageid(node_id, content);
+        return this.eim_client.emit_with_messageid(node_id, content);
     }
 
     broadcastTopicMessageAndWait_REPORTER(args) {
         // topic服务于消息功能， node_id承载业务逻辑(extension)
         const node_id = args.node_id;
         const content = args.content;
-        return this.adapter_client.emit_with_messageid(node_id, content);
+        return this.eim_client.emit_with_messageid(node_id, content);
     }
 
     // wait/not wait
@@ -646,7 +525,7 @@ class EIMBlocks {
     control_extension(args) {
         const content = args.turn;
         const ext_name = args.ext_name;
-        return this.adapter_client.emit_with_messageid_for_control(
+        return this.eim_client.emit_with_messageid_for_control(
             NODE_ID,
             content,
             ext_name,
@@ -657,7 +536,7 @@ class EIMBlocks {
     // todo 主动查询后端 使用rpc风格，有id的消息 和没有id的消息
     is_extension_turned_on(args) {
         const ext_name = args.ext_name;
-        const statu = this.adapter_client.exts_statu[ext_name]["is_running"];
+        const statu = this.eim_client.exts_statu[ext_name]["is_running"];
         if (statu) {
             return statu;
         } else {
@@ -668,7 +547,7 @@ class EIMBlocks {
     control_node(args) {
         const content = args.turn;
         const node_name = args.node_name;
-        return this.adapter_client.emit_with_messageid_for_control(
+        return this.eim_client.emit_with_messageid_for_control(
             NODE_ID,
             content,
             node_name,
@@ -678,7 +557,7 @@ class EIMBlocks {
     // todo 主动查询后端 使用rpc风格，有id的消息 和没有id的消息
     is_node_turned_on(args) {
         const node_name = args.node_name;
-        const statu = this.adapter_client.nodes_statu[node_name]["is_running"];
+        const statu = this.eim_client.nodes_statu[node_name]["is_running"];
         if (statu) {
             return statu;
         } else {
