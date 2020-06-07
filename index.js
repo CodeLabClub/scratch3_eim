@@ -192,6 +192,17 @@ class EIMBlocks {
                     arguments: {},
                 },
                 {
+                    opcode: "is_adapter_running",
+                    blockType: BlockType.BOOLEAN,
+                    text: formatMessage({
+                        id: "eim.is_adapter_running",
+                        default: "is Adapter running?",
+                        description: "is Adapter running?",
+                    }),
+                    arguments: {
+                    },
+                },
+                {
                     opcode: "whenMessageReceive",
                     blockType: BlockType.HAT,
                     text: formatMessage({
@@ -259,6 +270,22 @@ class EIMBlocks {
                     },
                 },
                 {
+                    opcode: "broadcastMessageAndWait_REPORTER",
+                    blockType: BlockType.REPORTER,
+                    text: formatMessage({
+                        id: "eim.broadcastMessageAndWait_REPORTER",
+                        default: "broadcast [content] and wait",
+                        description:
+                            "broadcast message to codelab-adapter and wait(REPORTER)",
+                    }),
+                    arguments: {
+                        content: {
+                            type: ArgumentType.STRING,
+                            defaultValue: "hello",
+                        },
+                    },
+                },
+                {
                     opcode: "control_extension",
                     blockType: BlockType.COMMAND,
                     text: formatMessage({
@@ -282,7 +309,7 @@ class EIMBlocks {
                 },
                 {
                     opcode: "is_extension_turned_on",
-                    blockType: BlockType.REPORTER,
+                    blockType: BlockType.BOOLEAN,
                     text: formatMessage({
                         id: "eim.is_extension_turned_on",
                         default: "is [ext_name] turned on?",
@@ -460,6 +487,10 @@ class EIMBlocks {
         window.open(this.eim_client.HELP_URL);
     }
 
+    is_adapter_running(args) {
+        return this.eim_client.adapter_base_client.connected;
+    }
+
     // when receive
     whenMessageReceive(args) {
         const content = args.content;
@@ -493,6 +524,11 @@ class EIMBlocks {
     }
 
     broadcastMessageAndWait(args) {
+        const content = args.content;
+        return this.eim_client.emit_with_messageid(NODE_ID, content);
+    }
+
+    broadcastMessageAndWait_REPORTER(args) {
         const content = args.content;
         return this.eim_client.emit_with_messageid(NODE_ID, content);
     }
