@@ -41,6 +41,7 @@ class AdapterBaseClient {
                 ? "127.0.0.1"
                 : "codelab-adapter.codelab.club";
         }
+        this.adapterHost = adapterHost;
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get("token");
         this.socket = io(

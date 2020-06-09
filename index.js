@@ -4,6 +4,100 @@ const RateLimiter = require("../../util/rateLimiter.js");
 const formatMessage = require("format-message");
 // const io = require("socket.io-client"); // yarn add socket.io-client socket.io-client@2.2.0
 const AdapterBaseClient = require("./codelab_adapter_base.js");
+
+// 翻译
+const FormHelp = {
+    en: "help",
+    "zh-cn": "帮助",
+};
+
+const Form_is_adapter_running = {
+    en: "is Adapter running?",
+    "zh-cn": "Adapter 已开启?",
+}
+
+const Form_whenMessageReceive = {
+    en: "when I receive [content]",
+    "zh-cn": "当接收到 [content]",
+}
+
+const Form_whenAnyMessageReceive = {
+    en: "when I receive any message",
+    "zh-cn": "当接收到任何消息",
+}
+
+
+const Form_getComingMessage = {
+    en: "received message",
+    "zh-cn": "收到的消息",
+}
+
+const Form_sendMessageAndWait = {
+    en: "broadcast [content] and wait",
+    "zh-cn": "广播[content]并等待",
+}
+
+
+const Form_sendMessage = {
+    en: "broadcast [content]",
+    "zh-cn": "广播 [content]",
+}
+
+
+const Form_broadcastMessageAndWait_REPORTER = {
+    en: "broadcast [content] and wait",
+    "zh-cn": "广播[content]并等待",
+}
+
+
+const Form_control_extension = {
+    en: "[turn] [ext_name]",
+    "zh-cn": "[turn] [ext_name]",
+}
+
+
+const Form_is_extension_turned_on = {
+    en: "is [ext_name] turned on?",
+    "zh-cn": "[ext_name]已开启?",
+}
+
+const Form_control_node = {
+    en: "[turn] [node_name]",
+    "zh-cn": "[turn] [node_name]",
+}
+
+const Form_is_node_turned_on = {
+    en: "is [node_name] turned on?",
+    "zh-cn": "[node_name]已开启?",
+}
+
+const Form_whenTopicMessageReceive = {
+    en: "when I receive [node_id] [content]",
+    "zh-cn": "当接收到 [node_id] [content]",
+}
+
+
+const Form_sendTopicMessageAndWait = {
+    en: "broadcast [node_id] [content] and wait",
+    "zh-cn": "广播[node_id][content]并等待",
+}
+
+const Form_sendTopicMessage = {
+    en: "broadcast [node_id] [content]",
+    "zh-cn": "广播[node_id][content]",
+}
+
+
+const Form_sendTopicMessageAndWait_REPORTER = {
+    en: "broadcast [node_id] [content] and wait",
+    "zh-cn": "广播[node_id][content]并等待",
+}
+
+const Form_trust_adapter_host = {
+    en: "trust adapter host[adapter_host]",
+    "zh-cn": "信任[adapter_host]",
+}
+
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
  * @type {string}
@@ -154,6 +248,7 @@ class EIMClient {
     }
 }
 
+
 class EIMBlocks {
     constructor(runtime) {
         /**
@@ -171,10 +266,27 @@ class EIMBlocks {
         return "Scratch.eim";
     }
 
+    _setLocale() {
+        let now_locale = "";
+        switch (formatMessage.setup().locale) {
+            case "en":
+                now_locale = "en";
+                break;
+            case "zh-cn":
+                now_locale = "zh-cn";
+                break;
+            default:
+                now_locale = "zh-cn";
+                break;
+        }
+        return now_locale;
+    }
+
     /**
      * @returns {object} metadata for this extension and its blocks.
      */
     getInfo() {
+        let the_locale = this._setLocale();
         return {
             id: NODE_ID,
             name: "EIM",
@@ -184,32 +296,20 @@ class EIMBlocks {
                 {
                     opcode: "open_help_url",
                     blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: "eim.open_help_url",
-                        default: "help",
-                        description: "open help url",
-                    }),
+                    text: FormHelp[the_locale],
                     arguments: {},
                 },
                 {
                     opcode: "is_adapter_running",
                     blockType: BlockType.BOOLEAN,
-                    text: formatMessage({
-                        id: "eim.is_adapter_running",
-                        default: "is Adapter running?",
-                        description: "is Adapter running?",
-                    }),
+                    text: Form_is_adapter_running[the_locale],
                     arguments: {
                     },
                 },
                 {
                     opcode: "whenMessageReceive",
                     blockType: BlockType.HAT,
-                    text: formatMessage({
-                        id: "eim.whenMessageReceive",
-                        default: "when I receive [content]",
-                        description: "receive target message",
-                    }),
+                    text: Form_whenMessageReceive[the_locale],
                     arguments: {
                         content: {
                             type: ArgumentType.STRING,
@@ -220,33 +320,20 @@ class EIMBlocks {
                 {
                     opcode: "whenAnyMessageReceive",
                     blockType: BlockType.HAT,
-                    text: formatMessage({
-                        id: "eim.whenAnyMessageReceive",
-                        default: "when I receive any message",
-                        description: "receive any message",
-                    }),
+                    text: Form_whenAnyMessageReceive[the_locale],
                     arguments: {},
                 },
                 {
                     opcode: "getComingMessage",
                     blockType: BlockType.REPORTER, // BOOLEAN, COMMAND
-                    text: formatMessage({
-                        id: "eim.getComingMessage",
-                        default: "received message",
-                        description: "received message",
-                    }),
+                    text: Form_getComingMessage[the_locale],
                     arguments: {},
                 },
                 // 优先推荐wait模式（同步）
                 {
                     opcode: "broadcastMessageAndWait",
                     blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: "eim.sendMessageAndWait",
-                        default: "broadcast [content] and wait",
-                        description:
-                            "broadcast message to codelab-adapter and wait",
-                    }),
+                    text: Form_sendMessageAndWait[the_locale],
                     arguments: {
                         content: {
                             type: ArgumentType.STRING,
@@ -257,11 +344,7 @@ class EIMBlocks {
                 {
                     opcode: "broadcastMessage",
                     blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: "eim.sendMessage",
-                        default: "broadcast [content]",
-                        description: "broadcast message to codelab-adapter",
-                    }),
+                    text: Form_sendMessage[the_locale],
                     arguments: {
                         content: {
                             type: ArgumentType.STRING,
@@ -272,12 +355,7 @@ class EIMBlocks {
                 {
                     opcode: "broadcastMessageAndWait_REPORTER",
                     blockType: BlockType.REPORTER,
-                    text: formatMessage({
-                        id: "eim.broadcastMessageAndWait_REPORTER",
-                        default: "broadcast [content] and wait",
-                        description:
-                            "broadcast message to codelab-adapter and wait(REPORTER)",
-                    }),
+                    text: Form_broadcastMessageAndWait_REPORTER[the_locale],
                     arguments: {
                         content: {
                             type: ArgumentType.STRING,
@@ -288,12 +366,7 @@ class EIMBlocks {
                 {
                     opcode: "control_extension",
                     blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: "eim.control_extension",
-                        default: "[turn] [ext_name]",
-                        description:
-                            "turn on/off the extension of codelab-adapter",
-                    }),
+                    text: Form_control_extension[the_locale],
                     arguments: {
                         turn: {
                             type: ArgumentType.STRING,
@@ -310,11 +383,7 @@ class EIMBlocks {
                 {
                     opcode: "is_extension_turned_on",
                     blockType: BlockType.BOOLEAN,
-                    text: formatMessage({
-                        id: "eim.is_extension_turned_on",
-                        default: "is [ext_name] turned on?",
-                        description: "get the extension statu",
-                    }),
+                    text: Form_is_extension_turned_on[the_locale],
                     arguments: {
                         ext_name: {
                             type: ArgumentType.STRING,
@@ -326,11 +395,7 @@ class EIMBlocks {
                 {
                     opcode: "control_node",
                     blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: "eim.control_node",
-                        default: "[turn] [node_name]",
-                        description: "turn on/off the node of codelab-adapter",
-                    }),
+                    text: Form_control_node[the_locale],
                     arguments: {
                         turn: {
                             type: ArgumentType.STRING,
@@ -346,12 +411,8 @@ class EIMBlocks {
                 },
                 {
                     opcode: "is_node_turned_on",
-                    blockType: BlockType.REPORTER,
-                    text: formatMessage({
-                        id: "eim.is_node_turned_on",
-                        default: "is [node_name] turned on?",
-                        description: "get the node statu",
-                    }),
+                    blockType: BlockType.BOOLEAN,
+                    text: Form_is_node_turned_on[the_locale],
                     arguments: {
                         node_name: {
                             type: ArgumentType.STRING,
@@ -363,11 +424,7 @@ class EIMBlocks {
                 {
                     opcode: "whenTopicMessageReceive",
                     blockType: BlockType.HAT,
-                    text: formatMessage({
-                        id: "eim.whenTopicMessageReceive",
-                        default: "when I receive [node_id] [content]",
-                        description: "receive target topic message",
-                    }),
+                    text: Form_whenTopicMessageReceive[the_locale],
                     arguments: {
                         node_id: {
                             type: ArgumentType.STRING,
@@ -382,12 +439,7 @@ class EIMBlocks {
                 {
                     opcode: "broadcastTopicMessageAndWait",
                     blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: "eim.sendTopicMessageAndWait",
-                        default: "broadcast [node_id] [content] and wait",
-                        description:
-                            "broadcast topic message to codelab-adapter and wait",
-                    }),
+                    text: Form_sendTopicMessageAndWait[the_locale],
                     arguments: {
                         node_id: {
                             type: ArgumentType.STRING,
@@ -402,12 +454,7 @@ class EIMBlocks {
                 {
                     opcode: "broadcastTopicMessage",
                     blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: "eim.sendTopicMessage",
-                        default: "broadcast [node_id] [content]",
-                        description:
-                            "broadcast topic message to codelab-adapter",
-                    }),
+                    text: Form_sendTopicMessage[the_locale],
                     arguments: {
                         node_id: {
                             type: ArgumentType.STRING,
@@ -422,12 +469,7 @@ class EIMBlocks {
                 {
                     opcode: "broadcastTopicMessageAndWait_REPORTER",
                     blockType: BlockType.REPORTER,
-                    text: formatMessage({
-                        id: "eim.sendTopicMessageAndWait_REPORTER",
-                        default: "broadcast [node_id] [content] and wait",
-                        description:
-                            "broadcast topic message to codelab-adapter and wait(REPORTER)",
-                    }),
+                    text: Form_sendTopicMessageAndWait_REPORTER[the_locale],
                     arguments: {
                         node_id: {
                             type: ArgumentType.STRING,
@@ -442,15 +484,11 @@ class EIMBlocks {
                 {
                     opcode: "trust_adapter_host",
                     blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: "eim.trust_adapter_host",
-                        default: "trust adapter host[adapter_host]",
-                        description: "trust adapter host",
-                    }),
+                    text: Form_trust_adapter_host[the_locale],
                     arguments: {
                         adapter_host: {
                             type: ArgumentType.STRING,
-                            defaultValue: `${this.adapterHost}`, //'https://raspberrypi.local:12358'
+                            defaultValue: `${this.eim_client.adapter_base_client.adapterHost}`, //'https://raspberrypi.local:12358'
                         },
                     },
                 },
