@@ -540,7 +540,9 @@ class EIMBlocks {
     }
 
     getComingMessage() {
-        return this.eim_client.adapter_node_content_reporter;
+        let result = this.eim_client.adapter_node_content_reporter;
+        // 避免未定义
+        if (result){return result} else{return ""}
     }
 
     // when receive
