@@ -76,6 +76,10 @@ const Form_whenTopicMessageReceive = {
     "zh-cn": "当接收到 [node_id] [content]",
 }
 
+const Form_whenAnyTopicMessageReceive = {
+    en: "when I receive [node_id] any message",
+    "zh-cn": "当接收到 [node_id] 任何消息",
+}
 
 const Form_sendTopicMessageAndWait = {
     en: "broadcast [node_id] [content] and wait",
@@ -200,7 +204,7 @@ class EIMClient {
 
     isTargetTopicMessage(targerNodeId, targetContent) {
         if (
-            targetContent === this.adapter_node_content_hat &&
+            (targetContent === this.adapter_node_content_hat || targetContent === "_any") &&
             targerNodeId === this.node_id
         ) {
             setTimeout(() => {
@@ -437,6 +441,17 @@ class EIMBlocks {
                     },
                 },
                 {
+                    opcode: "whenAnyTopicMessageReceive",
+                    blockType: BlockType.HAT,
+                    text: Form_whenAnyTopicMessageReceive[the_locale],
+                    arguments: {
+                        node_id: {
+                            type: ArgumentType.STRING,
+                            defaultValue: "eim/extension_python",
+                        },
+                    },
+                },
+                {
                     opcode: "broadcastTopicMessageAndWait",
                     blockType: BlockType.COMMAND,
                     text: Form_sendTopicMessageAndWait[the_locale],
@@ -522,7 +537,7 @@ class EIMBlocks {
     }
 
     open_help_url(args) {
-        window.open(this.eim_client.HELP_URL);
+        window.open(HELP_URL);
     }
 
     is_adapter_running(args) {
@@ -539,6 +554,8 @@ class EIMBlocks {
         return this.eim_client.isTargetMessage("_any");
     }
 
+    
+
     getComingMessage() {
         let result = this.eim_client.adapter_node_content_reporter;
         // 避免未定义
@@ -552,6 +569,14 @@ class EIMBlocks {
         return this.eim_client.isTargetTopicMessage(
             targetNodeId,
             targetContent
+        );
+    }
+
+    whenAnyTopicMessageReceive(args) {
+        const targetNodeId = args.node_id;
+        return this.eim_client.isTargetTopicMessage(
+            targetNodeId,
+            "_any"
         );
     }
 
