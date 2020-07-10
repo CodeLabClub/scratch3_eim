@@ -11,6 +11,11 @@ const FormHelp = {
     "zh-cn": "帮助",
 };
 
+const FormWebUI = {
+    en: "open Adapter Web UI",
+    "zh-cn": "打开Adapter控制台",
+};
+
 const Form_is_adapter_running = {
     en: "is Adapter running?",
     "zh-cn": "Adapter 已开启?",
@@ -303,6 +308,13 @@ class EIMBlocks {
                     text: FormHelp[the_locale],
                     arguments: {},
                 },
+                //FormWebUI
+                {
+                    opcode: "openWebUI",
+                    blockType: BlockType.COMMAND,
+                    text: FormWebUI[the_locale],
+                    arguments: {},
+                },
                 {
                     opcode: "is_adapter_running",
                     blockType: BlockType.BOOLEAN,
@@ -540,6 +552,10 @@ class EIMBlocks {
         window.open(HELP_URL);
     }
 
+    openWebUI(args) {
+        window.open("https://codelab-adapter.codelab.club:12358/");
+    }
+
     is_adapter_running(args) {
         return this.eim_client.adapter_base_client.connected;
     }
@@ -554,7 +570,6 @@ class EIMBlocks {
         return this.eim_client.isTargetMessage("_any");
     }
 
-    
 
     getComingMessage() {
         let result = this.eim_client.adapter_node_content_reporter;
