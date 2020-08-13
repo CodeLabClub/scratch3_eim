@@ -284,7 +284,7 @@ class AdapterBaseClient {
         return new Promise((resolve, reject) => {
             this._promiseResolves[messageID] = resolve; // 抛到外部
             setTimeout(() => {
-                reject(`timeout(${timeout}ms)`);
+                resolve(`timeout(${timeout}ms)`);
             }, timeout);
         });
     }
