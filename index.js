@@ -233,8 +233,8 @@ class EIMClient {
         }
         return [
             {
-                text: "extension_eim",
-                value: "extension_eim",
+                text: "extension_python",
+                value: "extension_python",
             },
         ];
     }
@@ -250,8 +250,8 @@ class EIMClient {
         }
         return [
             {
-                text: "node_eim",
-                value: "node_eim",
+                text: "node_physical_blocks",
+                value: "node_physical_blocks",
             },
         ];
     }
@@ -391,7 +391,7 @@ class EIMBlocks {
                         },
                         ext_name: {
                             type: ArgumentType.STRING,
-                            defaultValue: "extension_eim",
+                            defaultValue: "extension_python",
                             menu: "exts_name",
                         },
                     },
@@ -403,7 +403,7 @@ class EIMBlocks {
                     arguments: {
                         ext_name: {
                             type: ArgumentType.STRING,
-                            defaultValue: "extension_eim",
+                            defaultValue: "extension_python",
                             menu: "exts_name",
                         },
                     },
@@ -420,7 +420,7 @@ class EIMBlocks {
                         },
                         node_name: {
                             type: ArgumentType.STRING,
-                            defaultValue: "node_eim",
+                            defaultValue: "node_physical_blocks",
                             menu: "nodes_name",
                         },
                     },
@@ -432,7 +432,7 @@ class EIMBlocks {
                     arguments: {
                         node_name: {
                             type: ArgumentType.STRING,
-                            defaultValue: "node_eim",
+                            defaultValue: "node_physical_blocks",
                             menu: "nodes_name",
                         },
                     },
@@ -574,7 +574,9 @@ class EIMBlocks {
     getComingMessage() {
         let result = this.eim_client.adapter_node_content_reporter;
         // 避免未定义
-        if (result){return result} else{return ""}
+        if (result){
+            return JSON.stringify(result)
+        } else{return ""}
     }
 
     // when receive

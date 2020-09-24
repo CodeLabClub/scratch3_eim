@@ -31,7 +31,7 @@ class AdapterBaseClient {
             extension: EXTS_OPERATE_TOPIC,
         };
 
-        this._requestID = 0;
+        // this._requestID = 0; // todo uuid
         this._promiseResolves = {};
 
         const url = new URL(window.location.href);
@@ -289,10 +289,18 @@ class AdapterBaseClient {
         });
     }
 
+    get_uuid(){
+        // https://stackoverflow.com/questions/105034/how-to-create-guid-uuid
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+              var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+              return v.toString(16);
+            });   
+    }
+
     emit_with_messageid(node_id, content) {
         // if (!this._rateLimiter.okayToSend()) return Promise.resolve();
 
-        const messageID = this._requestID++;
+        const messageID = this.get_uuid();
         const payload = {};
         payload.node_id = node_id;
         payload.content = content;
@@ -307,7 +315,7 @@ class AdapterBaseClient {
     emit_with_messageid_for_control(node_id, content, node_name, pluginType) {
         // if (!this._rateLimiter.okayToSend()) return Promise.resolve();
 
-        const messageID = this._requestID++;
+        const messageID = this.get_uuid();
         const payload = {};
         payload.node_id = node_id;
         payload.content = content;
