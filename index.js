@@ -1,6 +1,5 @@
 const ArgumentType = require("../../extension-support/argument-type");
 const BlockType = require("../../extension-support/block-type");
-const RateLimiter = require("../../util/rateLimiter.js");
 const formatMessage = require("format-message");
 // const io = require("socket.io-client"); // yarn add socket.io-client socket.io-client@2.2.0
 const AdapterBaseClient = require("./codelab_adapter_base.js");
@@ -152,8 +151,7 @@ class EIMClient {
     constructor(node_id, help_url) {
         this.NODE_ID = node_id;
         this.HELP_URL = help_url;
-        const SendRateMax = 10;
-        this._rateLimiter = new RateLimiter(SendRateMax);
+        const SendRateMax = 100; // EIM没有可以发送100条消息
 
         // eim
         this.exts_statu = {};
@@ -168,29 +166,9 @@ class EIMClient {
             this.node_statu_change_callback.bind(this), // node_statu_change_callback,
             null, // notify_callback,
             null, // error_message_callback,
-            null // update_adapter_status
+            null, // update_adapter_status
+            SendRateMax
         );
-    }
-
-    emit_with_messageid(node_id, content) {
-        // 包装adapter client emit， 添加 rateLimiter
-        if (!this._rateLimiter.okayToSend()) return Promise.resolve();
-        return this.adapter_base_client.emit_with_messageid(node_id, content);
-    }
-
-    emit_with_messageid_for_control(node_id, content, node_name, pluginType) {
-        if (!this._rateLimiter.okayToSend()) return Promise.resolve();
-        return this.adapter_base_client.emit_with_messageid_for_control(
-            node_id,
-            content,
-            node_name,
-            pluginType
-        );
-    }
-
-    emit_without_messageid(node_id, content) {
-        if (!this._rateLimiter.okayToSend()) return Promise.resolve();
-        this.adapter_base_client.emit_without_messageid(node_id, content);
     }
 
     isTargetMessage(content) {
@@ -601,18 +579,18 @@ class EIMBlocks {
     // 使用广播的概念, 与scratch保持一致
     broadcastMessage(args) {
         const content = args.content;
-        this.eim_client.emit_without_messageid(NODE_ID, content);
+        this.eim_client.adapter_base_client.emit_without_messageid(NODE_ID, content);
         return;
     }
 
     broadcastMessageAndWait(args) {
         const content = args.content;
-        return this.eim_client.emit_with_messageid(NODE_ID, content);
+        return this.eim_client.adapter_base_client.emit_with_messageid(NODE_ID, content);
     }
 
     broadcastMessageAndWait_REPORTER(args) {
         const content = args.content;
-        return this.eim_client.emit_with_messageid(NODE_ID, content);
+        return this.eim_client.adapter_base_client.emit_with_messageid(NODE_ID, content);
     }
 
     // broadcast message
@@ -620,7 +598,7 @@ class EIMBlocks {
     broadcastTopicMessage(args) {
         const node_id = args.node_id;
         const content = args.content;
-        this.eim_client.emit_without_messageid(node_id, content);
+        this.eim_client.adapter_base_client.emit_without_messageid(node_id, content);
         return;
     }
 
@@ -628,14 +606,14 @@ class EIMBlocks {
         // topic服务于消息功能， node_id承载业务逻辑(extension)
         const node_id = args.node_id;
         const content = args.content;
-        return this.eim_client.emit_with_messageid(node_id, content);
+        return this.eim_client.adapter_base_client.emit_with_messageid(node_id, content);
     }
 
     broadcastTopicMessageAndWait_REPORTER(args) {
         // topic服务于消息功能， node_id承载业务逻辑(extension)
         const node_id = args.node_id;
         const content = args.content;
-        return this.eim_client.emit_with_messageid(node_id, content);
+        return this.eim_client.adapter_base_client.emit_with_messageid(node_id, content);
     }
 
     // wait/not wait
@@ -643,7 +621,7 @@ class EIMBlocks {
     control_extension(args) {
         const content = args.turn;
         const ext_name = args.ext_name;
-        return this.eim_client.emit_with_messageid_for_control(
+        return this.eim_client.adapter_base_client.emit_with_messageid_for_control(
             NODE_ID,
             content,
             ext_name,
@@ -665,7 +643,7 @@ class EIMBlocks {
     control_node(args) {
         const content = args.turn;
         const node_name = args.node_name;
-        return this.eim_client.emit_with_messageid_for_control(
+        return this.eim_client.adapter_base_client.emit_with_messageid_for_control(
             NODE_ID,
             content,
             node_name,

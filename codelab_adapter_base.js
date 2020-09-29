@@ -1,8 +1,10 @@
 const io = require("socket.io-client");
+const RateLimiter = require("../../util/rateLimiter.js");
 
 class AdapterBaseClient {
     // fork for eim client
     // onMessage,
+    // todo
     constructor(
         onConnect,
         onDisconnect,
@@ -12,7 +14,8 @@ class AdapterBaseClient {
         node_statu_change_callback,
         notify_callback,
         error_message_callback,
-        update_adapter_status
+        update_adapter_status,
+        SendRateMax = 60 // 每个插件每秒最多60条消息
     ) {
         const ADAPTER_TOPIC = "adapter/nodes/data";
         const EXTS_OPERATE_TOPIC = "core/exts/operate";
@@ -33,6 +36,8 @@ class AdapterBaseClient {
 
         // this._requestID = 0; // todo uuid
         this._promiseResolves = {};
+        this.SendRateMax = SendRateMax;
+        this._rateLimiter = new RateLimiter(SendRateMax);
 
         const url = new URL(window.location.href);
         let adapterHost = url.searchParams.get("adapter_host"); // 支持树莓派(分布式使用)
@@ -297,9 +302,23 @@ class AdapterBaseClient {
             });   
     }
 
-    emit_with_messageid(node_id, content) {
-        // if (!this._rateLimiter.okayToSend()) return Promise.resolve();
+    check_limiter(){
+        if (this._rateLimiter.okayToSend()){ 
+            return true;
+        }
+        else{
+            console.error(`rate limit (${this.SendRateMax})`);
+            /*
+            window.antNotification.error({
+                message: 'Error',
+                description: `rate limit (${this.SendRateMax})`
+            });*/
+            return false;
+        }
+    }
 
+    emit_with_messageid(node_id, content) {
+        if (!this.check_limiter()) return Promise.resolve();
         const messageID = this.get_uuid();
         const payload = {};
         payload.node_id = node_id;
@@ -313,8 +332,6 @@ class AdapterBaseClient {
     }
 
     emit_with_messageid_for_control(node_id, content, node_name, pluginType) {
-        // if (!this._rateLimiter.okayToSend()) return Promise.resolve();
-
         const messageID = this.get_uuid();
         const payload = {};
         payload.node_id = node_id;
@@ -329,8 +346,7 @@ class AdapterBaseClient {
     }
 
     emit_without_messageid(node_id, content) {
-        // if (!this._rateLimiter.okayToSend()) return Promise.resolve();
-
+        if (!this.check_limiter()) return Promise.resolve();
         const payload = {};
         payload.node_id = node_id;
         payload.content = content;
