@@ -148,10 +148,10 @@ class EIMClient {
         this.node_id = msg.message.payload.node_id;
     }
 
-    constructor(node_id, help_url) {
+    constructor(node_id, help_url, runtime) {
+        this._runtime = runtime;
         this.NODE_ID = node_id;
         this.HELP_URL = help_url;
-        const SendRateMax = 100; // EIM没有可以发送100条消息
 
         // eim
         this.exts_statu = {};
@@ -167,7 +167,8 @@ class EIMClient {
             null, // notify_callback,
             null, // error_message_callback,
             null, // update_adapter_status
-            SendRateMax
+            100 ,//SendRateMax // EIM没有可以发送100条消息
+            runtime,
         );
     }
 
@@ -242,7 +243,7 @@ class EIMBlocks {
          * The runtime instantiating this block package.
          * @type {Runtime}
          */
-        this.eim_client = new EIMClient(NODE_ID, HELP_URL);
+        this.eim_client = new EIMClient(NODE_ID, HELP_URL, runtime);
     }
 
     /**

@@ -15,8 +15,11 @@ class AdapterBaseClient {
         notify_callback,
         error_message_callback,
         update_adapter_status,
-        SendRateMax = 60 // 每个插件每秒最多60条消息
+        SendRateMax = 60, // 每个插件每秒最多60条消息
+        runtime = null,
     ) {
+        this.debug_mode = false; //false
+        this.runtime = runtime;
         const ADAPTER_TOPIC = "adapter/nodes/data";
         const EXTS_OPERATE_TOPIC = "core/exts/operate";
 
@@ -307,7 +310,11 @@ class AdapterBaseClient {
             return true;
         }
         else{
+            // runtime.emit('PUSH_NOTIFICATION', {content: '通知内容', type: 'success | error | warning | info'})
             console.error(`rate limit (${this.SendRateMax})`);
+            if (this.runtime){
+                this.runtime.emit('PUSH_NOTIFICATION', {content: `rate limit (${this.SendRateMax})`, type: 'error'})
+            }
             /*
             window.antNotification.error({
                 message: 'Error',
@@ -324,6 +331,9 @@ class AdapterBaseClient {
         payload.node_id = node_id;
         payload.content = content;
         payload.message_id = messageID;
+        if (this.debug_mode){
+            payload.timestamp = new Date().getTime();
+        }
         this.socket.emit("actuator", {
             payload: payload,
             topic: this.SCRATCH_TOPIC,
@@ -350,6 +360,9 @@ class AdapterBaseClient {
         const payload = {};
         payload.node_id = node_id;
         payload.content = content;
+        if (this.debug_mode){
+            payload.timestamp = new Date().getTime();
+        }
         this.socket.emit("actuator", {
             payload: payload,
             topic: this.SCRATCH_TOPIC,
