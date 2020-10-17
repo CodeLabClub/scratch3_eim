@@ -19,6 +19,7 @@ class AdapterBaseClient {
         runtime = null,
     ) {
         this.debug_mode = false; //false
+        this.NOTIFICATION_lasttime = new Date().getTime();
         this.runtime = runtime;
         const ADAPTER_TOPIC = "adapter/nodes/data";
         const EXTS_OPERATE_TOPIC = "core/exts/operate";
@@ -310,11 +311,25 @@ class AdapterBaseClient {
             return true;
         }
         else{
+            let now = new Date().getTime(); // ms
             // runtime.emit('PUSH_NOTIFICATION', {content: '通知内容', type: 'success | error | warning | info'})
             console.error(`rate limit (${this.SendRateMax})`);
+            // 一秒内只发一次
             if (this.runtime){
-                this.runtime.emit('PUSH_NOTIFICATION', {content: `rate limit (${this.SendRateMax})`, type: 'error'})
+                if (now - this.NOTIFICATION_lasttime > 1000 ){
+                // 如果不存在会如何？
+                try{
+                    console.debug(`PUSH_NOTIFICATION`);
+                    this.runtime.emit('PUSH_NOTIFICATION', {content: `rate limit (${this.SendRateMax})`, type: 'error'})
+                }
+                catch (e) {
+                    console.error(e)
+                 }
+                
+                this.NOTIFICATION_lasttime = new Date().getTime();
+                }
             }
+            
             /*
             window.antNotification.error({
                 message: 'Error',
