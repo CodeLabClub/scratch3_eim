@@ -36,6 +36,12 @@ const Form_getComingMessage = {
     "zh-cn": "收到的消息",
 }
 
+const Form_getComingTapicMessage = {
+    en: "received [node_id] message",
+    "zh-cn": "收到[node_id]的消息",
+}
+
+
 const Form_sendMessageAndWait = {
     en: "broadcast [content] and wait",
     "zh-cn": "广播[content]并等待",
@@ -443,6 +449,17 @@ class EIMBlocks {
                     },
                 },
                 {
+                    opcode: "getComingTopicMessage",
+                    blockType: BlockType.REPORTER, // BOOLEAN, COMMAND
+                    text: Form_getComingTapicMessage[the_locale],
+                    arguments: {
+                        node_id: {
+                            type: ArgumentType.STRING,
+                            defaultValue: "eim/extension_python",
+                        }
+                    },
+                },
+                {
                     opcode: "broadcastTopicMessageAndWait",
                     blockType: BlockType.COMMAND,
                     text: Form_sendTopicMessageAndWait[the_locale],
@@ -556,6 +573,18 @@ class EIMBlocks {
         if (result){
             return JSON.stringify(result)
         } else{return ""}
+    }
+
+    getComingTopicMessage(args) {
+        const targetNodeId = args.node_id;
+        let result = this.eim_client.adapter_node_content_reporter;
+        // 避免未定义
+        if (targetNodeId === this.eim_client.node_id){
+            if (result){
+                return JSON.stringify(result)
+            } 
+        }
+        return ""
     }
 
     // when receive

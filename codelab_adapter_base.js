@@ -15,7 +15,7 @@ class AdapterBaseClient {
         notify_callback,
         error_message_callback,
         update_adapter_status,
-        SendRateMax = 60, // 每个插件每秒最多60条消息
+        SendRateMax = 60, // 每个插件每秒最多60条消息, eim/websocket 承载能力都远超这个值
         runtime = null,
     ) {
         this.debug_mode = false; //false
@@ -288,8 +288,7 @@ class AdapterBaseClient {
         }
     }
 
-    get_reply_message(messageID) {
-        const timeout = 5000; // ms todo 交给用户选择
+    get_reply_message(messageID, timeout=5000) {
         return new Promise((resolve, reject) => {
             this._promiseResolves[messageID] = resolve; // 抛到外部
             setTimeout(() => {
@@ -318,9 +317,11 @@ class AdapterBaseClient {
             if (this.runtime){
                 if (now - this.NOTIFICATION_lasttime > 1000 ){
                 // 如果不存在会如何？
+                // util.stopAll();
                 try{
                     console.debug(`PUSH_NOTIFICATION`);
                     this.runtime.emit('PUSH_NOTIFICATION', {content: `rate limit (${this.SendRateMax})`, type: 'error'})
+                    this.runtime.stopAll();
                 }
                 catch (e) {
                     console.error(e)
@@ -339,7 +340,7 @@ class AdapterBaseClient {
         }
     }
 
-    emit_with_messageid(node_id, content) {
+    emit_with_messageid(node_id, content, timeout=5000) {
         if (!this.check_limiter()) return Promise.resolve();
         const messageID = this.get_uuid();
         const payload = {};
@@ -353,7 +354,7 @@ class AdapterBaseClient {
             payload: payload,
             topic: this.SCRATCH_TOPIC,
         });
-        return this.get_reply_message(messageID);
+        return this.get_reply_message(messageID, timeout);
     }
 
     emit_with_messageid_for_control(node_id, content, node_name, pluginType) {
