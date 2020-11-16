@@ -189,7 +189,7 @@ class AdapterBaseClient {
                         this._promiseResolves[message_id] &&
                             this._promiseResolves[message_id](
                                 content
-                            );
+                            ) && this._promiseResolves[message_id]
                     }
                     break;
                 }
@@ -292,7 +292,13 @@ class AdapterBaseClient {
         return new Promise((resolve, reject) => {
             this._promiseResolves[messageID] = resolve; // 抛到外部
             setTimeout(() => {
-                resolve(`timeout(${timeout}ms)`);
+                if (this._promiseResolves[messageID]){
+                    console.error(`timeout(${timeout/1000}s)`)
+                    resolve(`timeout(${timeout/1000}s)`);
+                    // todo 通知, 积木名字
+                    this.runtime.emit('PUSH_NOTIFICATION', {content: `timeout(${timeout/1000}s)`, type: 'error'})
+                }
+                
             }, timeout);
         });
     }
@@ -341,6 +347,7 @@ class AdapterBaseClient {
     }
 
     emit_with_messageid(node_id, content, timeout=5000) {
+        // todo 添加积木信息，抛出错误
         if (!this.check_limiter()) return Promise.resolve();
         const messageID = this.get_uuid();
         const payload = {};
