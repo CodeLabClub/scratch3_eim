@@ -189,7 +189,7 @@ class AdapterBaseClient {
                         this._promiseResolves[message_id] &&
                             this._promiseResolves[message_id](
                                 content
-                            ) && this._promiseResolves[message_id]
+                            ) && delete this._promiseResolves[message_id]
                     }
                     break;
                 }
