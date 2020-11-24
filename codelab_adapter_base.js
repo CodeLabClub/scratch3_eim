@@ -186,10 +186,11 @@ class AdapterBaseClient {
                     );
                     // 处理对应id的resolve
                     if (typeof message_id !== "undefined") {
-                        this._promiseResolves[message_id] &&
-                            this._promiseResolves[message_id](
-                                content
-                            ) && delete this._promiseResolves[message_id]
+                        if (this._promiseResolves[message_id]){
+                            this._promiseResolves[message_id](content);
+                            delete this._promiseResolves[message_id];
+                            console.log({message_id:this._promiseResolves[message_id]});
+                        }
                     }
                     break;
                 }
@@ -327,7 +328,8 @@ class AdapterBaseClient {
                 try{
                     console.debug(`PUSH_NOTIFICATION`);
                     this.runtime.emit('PUSH_NOTIFICATION', {content: `rate limit (${this.SendRateMax})`, type: 'error'})
-                    this.runtime.stopAll();
+                    // todo 灾难不要发生在全局，只是弹出提醒
+                    // this.runtime.stopAll(); 弹出消息更细致 包括积木名字
                 }
                 catch (e) {
                     console.error(e)
