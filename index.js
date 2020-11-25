@@ -112,6 +112,11 @@ const Form_trust_adapter_host = {
     "zh-cn": "信任[adapter_host]",
 }
 
+const FormSetEmitTimeout = {
+    en: "set wait timeout [emit_timeout]s",
+    "zh-cn": "设置等待超时时间[emit_timeout]秒",
+};
+
 /**
  * Icon svg to be displayed at the left edge of each extension block, encoded as a data URI.
  * @type {string}
@@ -162,6 +167,7 @@ class EIMClient {
         // eim
         this.exts_statu = {};
         this.nodes_statu = {};
+        this.emit_timeout = 5000; //ms
 
         this.adapter_base_client = new AdapterBaseClient(
             null, // onConnect,
@@ -176,6 +182,10 @@ class EIMClient {
             100 ,//SendRateMax // EIM没有可以发送100条消息
             runtime,
         );
+    }
+
+    emit_with_messageid(NODE_ID, content){
+        return this.adapter_base_client.emit_with_messageid(NODE_ID, content, this.emit_timeout)
     }
 
     isTargetMessage(content) {
@@ -305,6 +315,17 @@ class EIMBlocks {
                     blockType: BlockType.BOOLEAN,
                     text: Form_is_adapter_running[the_locale],
                     arguments: {
+                    },
+                },
+                {
+                    opcode: "set_emit_timeout",
+                    blockType: BlockType.COMMAND,
+                    text: FormSetEmitTimeout[the_locale],
+                    arguments: {
+                        emit_timeout: {
+                            type: ArgumentType.NUMBER,
+                            defaultValue:5.0,
+                        },
                     },
                 },
                 {
@@ -615,12 +636,12 @@ class EIMBlocks {
 
     broadcastMessageAndWait(args) {
         const content = args.content;
-        return this.eim_client.adapter_base_client.emit_with_messageid(NODE_ID, content);
+        return this.eim_client.emit_with_messageid(NODE_ID, content);
     }
 
     broadcastMessageAndWait_REPORTER(args) {
         const content = args.content;
-        return this.eim_client.adapter_base_client.emit_with_messageid(NODE_ID, content);
+        return this.eim_client.emit_with_messageid(NODE_ID, content);
     }
 
     // broadcast message
@@ -636,14 +657,14 @@ class EIMBlocks {
         // topic服务于消息功能， node_id承载业务逻辑(extension)
         const node_id = args.node_id;
         const content = args.content;
-        return this.eim_client.adapter_base_client.emit_with_messageid(node_id, content);
+        return this.eim_client.emit_with_messageid(node_id, content);
     }
 
     broadcastTopicMessageAndWait_REPORTER(args) {
         // topic服务于消息功能， node_id承载业务逻辑(extension)
         const node_id = args.node_id;
         const content = args.content;
-        return this.eim_client.adapter_base_client.emit_with_messageid(node_id, content);
+        return this.eim_client.emit_with_messageid(node_id, content);
     }
 
     // wait/not wait
@@ -690,6 +711,12 @@ class EIMBlocks {
             return false;
         }
     }
+
+    set_emit_timeout(args) {
+        const timeout = parseFloat(args.emit_timeout) * 1000;
+        this.eim_client.emit_timeout = timeout;
+    }
+
 }
 
 /*
