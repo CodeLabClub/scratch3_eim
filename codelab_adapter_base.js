@@ -1,4 +1,5 @@
 const io = require("socket.io-client"); // yarn add socket.io-client@2.3.1
+// import io from 'https://jspm.dev/socket.io-client@2.3.1'; // lively
 const RateLimiter = require("./rateLimiter.js"); // 独立放一份到这里
 
 class AdapterBaseClient {
@@ -429,24 +430,25 @@ class AdapterBaseClient {
         return this.get_reply_message(messageID, timeout); //todo timeout
     }
 
-    _linda_operate(operate, tuple){
+    // 1000
+    _linda_operate(operate, tuple, timeout=1000*3600*24){
         let node_id = "linda/js/client";
         let payload = {};
         payload["operate"] = operate;
         payload["tuple"] = tuple;
-        return this.send_to_linda_and_wait(node_id, payload)
+        return this.send_to_linda_and_wait(node_id, payload, timeout)
     }
 
-    linda_out(tuple){
-        return this._linda_operate("out", tuple);
+    linda_out(tuple, timeout=1000*3600*24){
+        return this._linda_operate("out", tuple, timeout);
     }
 
-    linda_in(tuple){
-        return this._linda_operate("in", tuple);
+    linda_in(tuple, timeout=1000*3600*24){
+        return this._linda_operate("in", tuple, timeout);
     }
 
-    linda_dump(tuple){
-        return this._linda_operate("dump", tuple);
+    linda_dump(tuple, timeout=1000*3600*24){
+        return this._linda_operate("dump", tuple, timeout);
     }
 
     emit_with_messageid_for_control(node_id, content, node_name, pluginType) {
