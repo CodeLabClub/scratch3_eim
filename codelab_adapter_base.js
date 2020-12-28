@@ -1,6 +1,7 @@
 const io = require("socket.io-client"); // yarn add socket.io-client@2.3.1
 // import io from 'https://jspm.dev/socket.io-client@2.3.1'; // lively
 const RateLimiter = require("./rateLimiter.js"); // 独立放一份到这里
+// https://github.com/CodeLabClub/scratch3_eim/blob/v3/codelab_adapter_base.js
 
 class AdapterBaseClient {
     // fork for eim client
@@ -59,6 +60,7 @@ class AdapterBaseClient {
         this.adapterHost = adapterHost;
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get("token");
+        this.token = urlParams.get("token");
         this.socket = io(
             `${window.__static ? "https:" : ""}//${adapterHost}:12358` +
                 `/test?token=${token}`,
@@ -70,13 +72,13 @@ class AdapterBaseClient {
 
         this.socket.on("connect", () => {
             // 主动发起获取插件状态的请求，发出一则消息
-            // console.log("socket connect ->", reason);
+            // console.debug("socket connect ->", reason);
             this.nodes_status_trigger();
             // let onConnect = '';
             if (typeof onConnect === "function") {
                 onConnect(); // 回调外部函数，onConnect可以是空的，忽视
             } else {
-                console.log("onConnect is not function");
+                console.debug("onConnect is not function");
             }
             this.connected = true;
         });
@@ -90,18 +92,18 @@ class AdapterBaseClient {
         // on message
         this.socket.on("sensor", (msg) => {
             // actuator: to scratch
-            console.log("recv(all message):", msg.message);
+            // console.debug("recv(all message):", msg.message);
             if (typeof onMessage === "function") {
                 onMessage(msg);
             }
             const topic = msg.message.topic;
             const content = msg.message.payload.content;
             const message_id = msg.message.payload.message_id;
-            // console.log('topic ->', topic);
+            // console.debug('topic ->', topic);
             switch (topic) {
                 case ADAPTER_STATUS_TOPIC: {
                     // if (msg.message.topic === this.ADAPTER_STATUS_TOPIC) {
-                    console.log("adapter core info:", content);
+                    console.debug("adapter core info:", content);
                     // this.version = content.version;
                     if (typeof update_adapter_status === "function") {
                         update_adapter_status(content);
@@ -126,7 +128,7 @@ class AdapterBaseClient {
                     // update extension status(start/stop  open/close)
                     const extension_node_name = msg.message.payload.node_name; //node or extension
                     // extension or node
-                    console.log("extension_node_name:", extension_node_name);
+                    console.debug("extension_node_name:", extension_node_name);
                     if (typeof node_statu_change_callback === "function") {
                         node_statu_change_callback(
                             extension_node_name,
@@ -140,7 +142,7 @@ class AdapterBaseClient {
                     // todo content.type
                     const type = msg.message.payload.type.toLowerCase();
                     const html = msg.message.payload.html;
-                    console.log("notification:", msg.message.payload);
+                    console.debug("notification:", msg.message.payload);
                     // alert(content);
 
                     if (html == true) {
@@ -182,12 +184,12 @@ class AdapterBaseClient {
                     break;
                 }
                 case ADAPTER_TOPIC: {
-                    // console.log("ADAPTER_TOPIC message");
+                    // console.debug("ADAPTER_TOPIC message");
                     if (typeof onAdapterPluginMessage === "function") {
                         onAdapterPluginMessage(msg);
                     }
                     // window.message = msg; // to global
-                    console.log(
+                    console.debug(
                         `ADAPTER_TOPIC message->`,
                         content
                     );
@@ -196,7 +198,7 @@ class AdapterBaseClient {
                         if (this._promiseResolves[message_id]){
                             this._promiseResolves[message_id](content);
                             delete this._promiseResolves[message_id];
-                            // console.log({message_id:this._promiseResolves[message_id]});
+                            // console.debug({message_id:this._promiseResolves[message_id]});
                         }
                     }
                     break;
@@ -204,7 +206,7 @@ class AdapterBaseClient {
 
                 case this.LINDA_CLIENT: {
                     const tuple = msg.message.payload.tuple;
-                    console.log(
+                    console.debug(
                         `LINDA_CLIENT message->`,
                         tuple
                     );
@@ -217,7 +219,7 @@ class AdapterBaseClient {
                         if (this._promiseResolves[message_id]){
                             this._promiseResolves[message_id](tuple);
                             delete this._promiseResolves[message_id];
-                            // console.log({message_id:this._promiseResolves[message_id]});
+                            // console.debug({message_id:this._promiseResolves[message_id]});
                         }
                     }
                     break;
@@ -234,6 +236,7 @@ class AdapterBaseClient {
                 content: turn,
                 node_id: "adapter/app",
                 node_name: "_", // use id
+                token: this.token
             },
         };
         this.socket.emit("actuator", message);
@@ -244,6 +247,7 @@ class AdapterBaseClient {
             topic: this.NODES_STATUS_TRIGGER_TOPIC,
             payload: {
                 content: "UPDATE_UI",
+                token: this.token
             },
         };
         this.socket.emit("actuator", message);
@@ -255,9 +259,10 @@ class AdapterBaseClient {
             topic: this.NODES_STATUS_TRIGGER_TOPIC,
             payload: {
                 content: "REFRESH_ENV",
+                token: this.token
             },
         };
-        console.log("ready to refresh_env(send message)");
+        console.debug("ready to refresh_env(send message)");
         this.socket.emit("actuator", message);
     }
 
@@ -268,6 +273,7 @@ class AdapterBaseClient {
                 content: "plugin_download",
                 plugin_url: plugin_url,
                 node_id: "adapter/app",
+                token: this.token
             },
         };
         this.socket.emit("actuator", message);
@@ -281,6 +287,7 @@ class AdapterBaseClient {
                 content: turn,
                 node_id: "_", // 不要使用它，避免bug（难以排查！）
                 node_name: node_name,
+                token: this.token
             },
         };
         this.socket.emit("actuator", message); // actuator: from scratch
@@ -295,6 +302,7 @@ class AdapterBaseClient {
                 payload: {
                     content: val,
                     node_id: "adapter/app",
+                    token: this.token
                 },
             };
             this.socket.emit("actuator", message);
@@ -311,6 +319,7 @@ class AdapterBaseClient {
                 payload: {
                     content: val,
                     node_id: "adapter/app",
+                    token: this.token
                 },
             };
             this.socket.emit("actuator", message);
@@ -387,6 +396,7 @@ class AdapterBaseClient {
         payload.node_id = node_id;
         payload.content = content;
         payload.message_id = messageID;
+        payload.token = this.token;
         if (this.debug_mode){
             payload.timestamp = new Date().getTime();
         }
@@ -411,6 +421,7 @@ class AdapterBaseClient {
         // payload.tuple = linda_tuple; //tuple/list
         const messageID = this.get_uuid();
         payload.message_id = messageID;
+        payload.token = this.token;
         if (this.debug_mode){
             payload.timestamp = new Date().getTime();
         }
@@ -447,8 +458,35 @@ class AdapterBaseClient {
         return this._linda_operate("in", tuple, timeout);
     }
 
-    linda_dump(tuple, timeout=1000*3600*24){
+    linda_rd(tuple, timeout=1000*3600*24){
+        return this._linda_operate("rd", tuple, timeout);
+    }
+
+    linda_rdp(tuple, timeout=1000*3600*24){
+        return this._linda_operate("rdp", tuple, timeout);
+    }
+
+    linda_inp(tuple, timeout=1000*3600*24){
+        return this._linda_operate("inp", tuple, timeout);
+    }
+
+    // linda helper, 没有参数
+    linda_dump(){
+        let timeout = 1000*3600*24;
+        let tuple = ["dump"];
         return this._linda_operate("dump", tuple, timeout);
+    }
+
+    linda_reboot(){
+        let timeout = 1000*3600*24;
+        let tuple = ["reboot"];
+        return this._linda_operate("reboot", tuple, timeout);
+    }
+
+    linda_status(){
+        let timeout = 1000*3600*24;
+        let tuple = ["status"];
+        return this._linda_operate("status", tuple, timeout);
     }
 
     emit_with_messageid_for_control(node_id, content, node_name, pluginType) {
@@ -458,6 +496,7 @@ class AdapterBaseClient {
         payload.content = content;
         payload.message_id = messageID;
         payload.node_name = node_name;
+        payload.token = this.token;
         this.socket.emit("actuator", {
             payload: payload,
             topic: this.plugin_topic_map[pluginType],
@@ -470,6 +509,7 @@ class AdapterBaseClient {
         const payload = {};
         payload.node_id = node_id;
         payload.content = content;
+        payload.token = this.token;
         if (this.debug_mode){
             payload.timestamp = new Date().getTime();
         }
