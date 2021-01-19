@@ -391,7 +391,7 @@ class AdapterBaseClient {
         // todo 添加积木信息，抛出错误
         if (!this.check_limiter()) return Promise.resolve('rate limit');
         // socket connected?
-        if (!this.connected) return Promise.resolve('not connected');
+        if (!this.connected) return Promise.resolve('not connected'); //reject?
         const messageID = this.get_uuid();
         const payload = {};
         payload.node_id = node_id;

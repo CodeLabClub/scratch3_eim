@@ -113,8 +113,7 @@ class ScratchUIHelper {
         // UI 触发
         console.log(`ready to connect ${id}`);
         if (this.adapter_base_client) {
-            const address = id;
-            const code = `connect("${address}")`; // disconnect()
+            const code = `connect("${id}")`; // disconnect()
 
             this.adapter_base_client
                 .emit_with_messageid(this.NODE_ID, code)
