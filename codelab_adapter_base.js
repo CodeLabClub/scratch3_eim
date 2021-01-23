@@ -59,8 +59,8 @@ class AdapterBaseClient {
         }
         this.adapterHost = adapterHost;
         const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get("token");
-        this.token = urlParams.get("token");
+        const token = urlParams.get("adapter_token");
+        this.token = urlParams.get("adapter_token");
         this.socket = io(
             `${window.__static ? "https:" : ""}//${adapterHost}:12358` +
                 `/test?token=${token}`,
@@ -167,7 +167,8 @@ class AdapterBaseClient {
                             type: type, // warning
                         };
                         if (typeof error_message_callback === "function") {
-                            error_message_callback(error_message);
+                            error_message_callback(error_message); // 为何要区分错误信息？
+                            // notify_callback(notify_message);
                         }
                     } else {
                         let notify_message = {

@@ -1,18 +1,21 @@
 class ScratchUIHelper {
     constructor(
         extensionId,
-        node_name,
+        NODE_NAME,
         NODE_ID,
+        NODE_MIN_VERSION,
         runtime,
         adapter_base_client,
         timeout = 5000
     ) {
         this.extensionId = extensionId; // extensionId 几个类里都未定义 extension_id
         this._runtime = runtime;
+        // window.runtime = runtime;
         this.adapter_base_client = adapter_base_client;
         this.connected = false;
-        this.node_name = node_name;
+        this.NODE_NAME = NODE_NAME;
         this.NODE_ID = NODE_ID;
+        this.NODE_MIN_VERSION = NODE_MIN_VERSION;
         this.timeout = timeout;
         this.connected = false; //描述设备连接？而不是管道连接
     }
@@ -35,6 +38,7 @@ class ScratchUIHelper {
 
     _start_node(node_name) {
         // todo: disconnect
+        console.log("start plugin");
         const content = "start";
         // const node_name = 'extension_microbit_radio';
         return this.adapter_base_client
@@ -50,11 +54,21 @@ class ScratchUIHelper {
             });
     }
 
+    _get_plugin_version(){
+        // 每次查询
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get("adapter_token");
+        // https://codelab-adapter.codelab.club:12358/api/get_node_versions?adapter_token=e2b1832a05f14f64
+        return fetch(`https://codelab-adapter.codelab.club:12358/api/get_node_version?adapter_token=${token}&plugin_name=${this.NODE_NAME}`)
+            .then(response => response.json())
+            .then(data => {return data});
+    }
+
     scan() {
         // 开启adapter插件，并扫描（list things）
         // console.debug("client.connected:", this.adapter_base_client.connected);
         // (window.socketState !== undefined && !window.socketState) ||
-        if (!this.adapter_base_client.connected) {
+        if (!this.adapter_base_client || !this.adapter_base_client.connected) {
             this._runtime.emit(
                 this._runtime.constructor.PERIPHERAL_REQUEST_ERROR,
                 {
@@ -65,17 +79,35 @@ class ScratchUIHelper {
             console.error(`Codelab adapter 未连接`);
             return;
         }
-        let promise = Promise.resolve();
-
-        //  打开插件(幂等操作)
-        promise = promise.then(() => {
-            return this._start_node(this.node_name);
-        });
-
-        // 获取things
+        // let promise = Promise.resolve(); // 不要并行！
+        // https://javascript.info/promise-chaining
+        let promise = this._get_plugin_version()
+        .then((plugin_info) => {
+            console.log("NODE_NAME:",this.NODE_NAME, 'plugin_info:',plugin_info); 
+            if (plugin_info.VERSION && plugin_info.VERSION >= this.NODE_MIN_VERSION){
+                // console.debug('plugin version ok')
+                return true; //go on
+            }
+            else {
+                let error_message = '插件不存在或版本太低';
+                console.error(error_message);
+                this._runtime.emit('PUSH_NOTIFICATION', {content: error_message, type: 'error'});
+                this._runtime.emit(
+                    this._runtime.constructor.PERIPHERAL_REQUEST_ERROR,
+                    {
+                        message: error_message,
+                        extensionId: this.extensionId,
+                    }
+                );
+                
+                // throw(new Error(error_message));
+                return Promise.reject(error_message)
+            }
+            
+        }).then(() => this._start_node(this.NODE_NAME));
+        // 获取adapter things
         const code = `list(timeout=${this.timeout/1000-1})`; // 广播 , 收到特定信息更新变量
         promise.then(() => {
-            // 默认5秒超时
             return this.adapter_base_client
                 .emit_with_messageid(this.NODE_ID, code, this.timeout) // todo 多层then问题
                 .then((data) => {
@@ -109,14 +141,14 @@ class ScratchUIHelper {
         console.log("scan");
     }
 
-    connect(id) {
+    connect(id, timeout=5000) {
         // UI 触发
         console.log(`ready to connect ${id}`);
         if (this.adapter_base_client) {
-            const code = `connect("${id}")`; // disconnect()
+            const code = `connect("${id}", timeout=${timeout/1000-0.5})`; // disconnect()
 
             this.adapter_base_client
-                .emit_with_messageid(this.NODE_ID, code)
+                .emit_with_messageid(this.NODE_ID, code, timeout)
                 .then(() => {
                     this.connected = true;
                     this._runtime.emit(

@@ -569,7 +569,8 @@ class EIMBlocks {
     }
 
     openWebUI(args) {
-        window.open("https://codelab-adapter.codelab.club:12358/");
+        let token = this.eim_client.adapter_base_client.token;
+        window.open(`https://codelab-adapter.codelab.club:12358/?adapter_token=${token}`);
     }
 
     is_adapter_running(args) {
