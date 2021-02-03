@@ -327,7 +327,7 @@ class AdapterBaseClient {
         }
     }
 
-    get_reply_message(messageID, timeout=5000) {
+    get_reply_message(messageID, timeout=7000) {
         return new Promise((resolve, reject) => {
             this._promiseResolves[messageID] = resolve; // 抛到外部
             setTimeout(() => {

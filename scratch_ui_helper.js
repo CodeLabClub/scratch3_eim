@@ -36,20 +36,25 @@ class ScratchUIHelper {
         }
     }
 
-    _start_node(node_name) {
+    _start_plugin(plugin_name) {
         // todo: disconnect
         console.log("start plugin");
         const content = "start";
-        // const node_name = 'extension_microbit_radio';
+        let plugin_type;
+        if (plugin_name.startsWith('node_')){
+            plugin_type = "node";
+        }else{
+            plugin_type = "extension";
+        }
         return this.adapter_base_client
             .emit_with_messageid_for_control(
                 this.NODE_ID,
                 content,
-                node_name,
-                "node"
+                plugin_name,
+                plugin_type
             )
             .then(() => {
-                console.log(`start ${node_name}`);
+                console.log(`start ${plugin_name}`);
                 //todo update_ports
             });
     }
@@ -58,17 +63,26 @@ class ScratchUIHelper {
         // 每次查询
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get("adapter_token");
+        /*
+        let adapter_host = urlParams.get("adapter_host");
+        if(!adapter_host){
+            adapter_host = "codelab-adapter.codelab.club";
+        }
         // https://codelab-adapter.codelab.club:12358/api/get_node_versions?adapter_token=e2b1832a05f14f64
-        return fetch(`https://codelab-adapter.codelab.club:12358/api/get_node_version?adapter_token=${token}&plugin_name=${this.NODE_NAME}`)
+        return fetch(`https://${adapter_host}:12358/api/get_node_version?adapter_token=${token}&plugin_name=${this.NODE_NAME}`)
             .then(response => response.json())
             .then(data => {return data});
+        */
+        // todo  adapter_base_client get version
+        return this.adapter_base_client.emit_with_messageid('eim/node_core_helper', {"adapter_token": token,"plugin_name": this.NODE_NAME, "message_type": 'get_plugin_version'}, this.timeout)
+        // return Promise.resolve({'VERSION': '9.0.0'}) // {'VERSION': '0.0.0'} // Promise.resolve({'VERSION': '0.0.0'})
     }
 
     scan() {
         // 开启adapter插件，并扫描（list things）
         // console.debug("client.connected:", this.adapter_base_client.connected);
-        // (window.socketState !== undefined && !window.socketState) ||
-        if (!this.adapter_base_client || !this.adapter_base_client.connected) {
+        if(window.socketState !== undefined && !window.socketState){
+        // if (!this.adapter_base_client || !this.adapter_base_client.connected) {
             this._runtime.emit(
                 this._runtime.constructor.PERIPHERAL_REQUEST_ERROR,
                 {
@@ -81,10 +95,12 @@ class ScratchUIHelper {
         }
         // let promise = Promise.resolve(); // 不要并行！
         // https://javascript.info/promise-chaining
-        let promise = this._get_plugin_version()
+        let promise = this._get_plugin_version() // todo 使用websocket
         .then((plugin_info) => {
-            console.log("NODE_NAME:",this.NODE_NAME, 'plugin_info:',plugin_info); 
-            if (plugin_info.VERSION && plugin_info.VERSION >= this.NODE_MIN_VERSION){
+            let plugin_info_json = JSON.parse(plugin_info)
+            console.debug("NODE_NAME:",this.NODE_NAME, "NODE_MIN_VERSION:",this.NODE_MIN_VERSION, "VERSION:",plugin_info_json.VERSION ); 
+            console.debug('plugin_info:', plugin_info_json);
+            if (plugin_info_json.VERSION && plugin_info_json.VERSION >= this.NODE_MIN_VERSION){
                 // console.debug('plugin version ok')
                 return true; //go on
             }
@@ -104,7 +120,7 @@ class ScratchUIHelper {
                 return Promise.reject(error_message)
             }
             
-        }).then(() => this._start_node(this.NODE_NAME));
+        }).then(() => this._start_plugin(this.NODE_NAME));
         // 获取adapter things
         const code = `list(timeout=${this.timeout/1000-1})`; // 广播 , 收到特定信息更新变量
         promise.then(() => {
