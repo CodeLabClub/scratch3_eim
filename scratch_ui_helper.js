@@ -81,6 +81,7 @@ class ScratchUIHelper {
     scan() {
         // 开启adapter插件，并扫描（list things）
         // console.debug("client.connected:", this.adapter_base_client.connected);
+        // todo window.socketState 暴露出来
         if(window.socketState !== undefined && !window.socketState){
         // if (!this.adapter_base_client || !this.adapter_base_client.connected) {
             this._runtime.emit(
@@ -146,10 +147,14 @@ class ScratchUIHelper {
                             prev[curr.peripheralId] = curr;
                             return prev;
                         }, {});
-                    this._runtime.emit(
-                        this._runtime.constructor.PERIPHERAL_LIST_UPDATE,
-                        _Obj
-                    ).catch((e) => console.error(e));;
+                    if (_Obj){
+                        // 有数据才更新
+                        this._runtime.emit(
+                            this._runtime.constructor.PERIPHERAL_LIST_UPDATE,
+                            _Obj
+                        ).catch((e) => console.error(e));;
+                    }
+                    
                 })
                 .catch((e) => console.error(e));
         });
@@ -159,13 +164,16 @@ class ScratchUIHelper {
 
     connect(id, timeout=5000) {
         // UI 触发
+        // todo connect失败
         console.log(`ready to connect ${id}`);
         if (this.adapter_base_client) {
-            const code = `connect("${id}", timeout=${timeout/1000-0.5})`; // disconnect()
+            // 连接超时则没成功
+            const code = `connect("${id}", timeout=${timeout/1000+0.5})`; // disconnect()
 
             this.adapter_base_client
                 .emit_with_messageid(this.NODE_ID, code, timeout)
-                .then(() => {
+                .then((data) => { // 检查返回值确认连接了 ok, 否则给出连接异常
+                    console.debug("connect reply:", data)
                     this.connected = true;
                     this._runtime.emit(
                         this._runtime.constructor.PERIPHERAL_CONNECTED

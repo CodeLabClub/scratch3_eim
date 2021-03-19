@@ -333,8 +333,8 @@ class AdapterBaseClient {
             setTimeout(() => {
                 if (this._promiseResolves[messageID]){
                     console.error(`timeout(${timeout/1000}s)`)
-                    // resolve(`timeout(${timeout/1000}s)`); 每个积木
-                    reject(`reject: timeout(${timeout/1000}s)`); // reject 积木将中止
+                    resolve(`timeout(${timeout/1000}s)`); // 不阻断接下来的积木
+                    // reject(`reject: timeout(${timeout/1000}s)`); // reject 积木将中止
                     // todo 通知, 积木名字
                     // todo: https://github.com/LLK/scratch-vm/blob/acc2e6dba2e5a32668f0b26f0b2c4dfdecbe1023/src/util/jsonrpc.js#L91
                     this.runtime.emit('PUSH_NOTIFICATION', {content: `timeout(${timeout/1000}s)`, type: 'error'})
@@ -503,7 +503,7 @@ class AdapterBaseClient {
             payload: payload,
             topic: this.plugin_topic_map[pluginType],
         });
-        return this.get_reply_message(messageID);
+        return this.get_reply_message(messageID, 10000); // timeout 10000, 10s
     }
 
     emit_without_messageid(node_id, content) {
@@ -520,6 +520,11 @@ class AdapterBaseClient {
             topic: this.SCRATCH_TOPIC,
         });
     }
+
+    /*
+    rm_begin_end_quotation(x){
+        return x.replace(/^"|"$/g, '');
+    }*/
 }
 
 // window.AdapterBaseClient = AdapterBaseClient;

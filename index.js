@@ -592,7 +592,12 @@ class EIMBlocks {
         let result = this.eim_client.adapter_node_content_reporter;
         // 避免未定义
         if (result){
-            return JSON.stringify(result)
+            if (typeof result == "string"){
+                return result
+            }
+            else{
+                return JSON.stringify(result)
+            }
         } else{return ""}
     }
 
@@ -602,7 +607,12 @@ class EIMBlocks {
         // 避免未定义
         if (targetNodeId === this.eim_client.node_id){
             if (result){
-                return JSON.stringify(result)
+                if (typeof result == "string"){
+                    return result
+                }
+                else{
+                    return JSON.stringify(result)
+                }
             }
         }
         return ""
