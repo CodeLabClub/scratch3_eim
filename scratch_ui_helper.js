@@ -74,7 +74,7 @@ class ScratchUIHelper {
             .then(data => {return data});
         */
         // todo  adapter_base_client get version
-        return this.adapter_base_client.emit_with_messageid('eim/node_core_helper', {"adapter_token": token,"plugin_name": this.NODE_NAME, "message_type": 'get_plugin_version'}, this.timeout)
+        return this.adapter_base_client.emit_with_messageid('eim/node_core_helper', {"adapter_token": token,"plugin_name": this.NODE_NAME, "message_type": 'get_plugin_version'}, 3000); //
         // return Promise.resolve({'VERSION': '9.0.0'}) // {'VERSION': '0.0.0'} // Promise.resolve({'VERSION': '0.0.0'})
     }
 

@@ -511,6 +511,7 @@ class AdapterBaseClient {
         const payload = {};
         payload.node_id = node_id;
         payload.content = content;
+        payload.message_type = "nowait";
         payload.token = this.token;
         if (this.debug_mode){
             payload.timestamp = new Date().getTime();
